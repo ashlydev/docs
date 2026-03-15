@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
+import { flushSync } from "react-dom";
 import {
   ArrowUpRight,
   Bot,
@@ -69,6 +70,59 @@ type PromptSuggestionProps = {
   onSelect: (prompt: string) => void;
 };
 
+type ChatShellStoreState = {
+  messages: ChatMessageRecord[];
+  input: string;
+  isLoading: boolean;
+  submitError: string | null;
+  activeSubmissionId: string | null;
+};
+
+const initialChatShellStoreState: ChatShellStoreState = {
+  messages: [],
+  input: "",
+  isLoading: false,
+  submitError: null,
+  activeSubmissionId: null
+};
+
+let chatShellStoreState: ChatShellStoreState = initialChatShellStoreState;
+
+const chatShellListeners = new Set<(state: ChatShellStoreState) => void>();
+
+function logChatEvent(event: string, details?: Record<string, unknown>) {
+  if (details) {
+    console.info("[chat-shell]", event, details);
+    return;
+  }
+
+  console.info("[chat-shell]", event);
+}
+
+function readChatShellStore() {
+  return chatShellStoreState;
+}
+
+function updateChatShellStore(
+  updater: (state: ChatShellStoreState) => ChatShellStoreState
+) {
+  chatShellStoreState = updater(chatShellStoreState);
+
+  for (const listener of chatShellListeners) {
+    listener(chatShellStoreState);
+  }
+
+  return chatShellStoreState;
+}
+
+function subscribeToChatShellStore(listener: (state: ChatShellStoreState) => void) {
+  chatShellListeners.add(listener);
+
+  return () => {
+    chatShellListeners.delete(listener);
+  };
+}
+
 function PromptSuggestion({
   label,
   prompt,
@@ -98,25 +152,37 @@ function PromptSuggestion({
 }
 
 export function ChatShell() {
-  const [messages, setMessages] = useState<ChatMessageRecord[]>([]);
-  const [input, setInput] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [chatState, setChatState] = useState<ChatShellStoreState>(() => readChatShellStore());
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const composerRef = useRef<HTMLDivElement | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
-  const submitInFlightRef = useRef(false);
+  const shellInstanceIdRef = useRef(createClientMessageId("shell"));
+  const { messages, input, isLoading, submitError, activeSubmissionId } = chatState;
   const trimmedInput = input.trim();
   const canSubmit = trimmedInput.length > 0 && !isLoading;
 
-  const logChatEvent = (event: string, details?: Record<string, unknown>) => {
-    if (details) {
-      console.info("[chat-shell]", event, details);
-      return;
-    }
+  useEffect(() => {
+    const shellInstanceId = shellInstanceIdRef.current;
 
-    console.info("[chat-shell]", event);
-  };
+    logChatEvent("shell-mounted", {
+      shellInstanceId,
+      messageCount: readChatShellStore().messages.length,
+      isLoading: readChatShellStore().isLoading
+    });
+
+    const unsubscribe = subscribeToChatShellStore((nextState) => {
+      setChatState(nextState);
+    });
+
+    return () => {
+      unsubscribe();
+      logChatEvent("shell-unmounted", {
+        shellInstanceId,
+        messageCount: readChatShellStore().messages.length,
+        isLoading: readChatShellStore().isLoading
+      });
+    };
+  }, []);
 
   useEffect(() => {
     if (!scrollRef.current) {
@@ -137,6 +203,12 @@ export function ChatShell() {
     }
 
     const handleViewportChange = () => {
+      logChatEvent("viewport-changed", {
+        width: viewport.width,
+        height: viewport.height,
+        offsetTop: viewport.offsetTop
+      });
+
       if (document.activeElement instanceof HTMLTextAreaElement) {
         composerRef.current?.scrollIntoView({
           block: "end"
@@ -192,50 +264,60 @@ export function ChatShell() {
   };
 
   const submitQuestion = async (rawQuestion?: string) => {
-    const question = (rawQuestion ?? input).trim();
+    const currentState = readChatShellStore();
+    const question = (rawQuestion ?? currentState.input).trim();
 
-    if (!question || isLoading || submitInFlightRef.current) {
+    if (!question || currentState.isLoading || currentState.activeSubmissionId) {
       logChatEvent("submit-skipped", {
         hasQuestion: Boolean(question),
-        isLoading,
-        submitInFlight: submitInFlightRef.current
+        isLoading: currentState.isLoading,
+        activeSubmissionId: currentState.activeSubmissionId
       });
       return;
     }
 
     const submissionId = createClientMessageId("submit");
-    submitInFlightRef.current = true;
-    setIsLoading(true);
-    setSubmitError(null);
+    const userMessage: ChatMessageRecord = {
+      id: createClientMessageId(),
+      role: "user",
+      content: question
+    };
+
     logChatEvent("submit-start", {
       submissionId,
       questionLength: question.length,
-      fromSuggestion: Boolean(rawQuestion)
+      fromSuggestion: Boolean(rawQuestion),
+      messageCountBeforeAppend: currentState.messages.length
     });
 
+    flushSync(() => {
+      updateChatShellStore((state) => ({
+        ...state,
+        messages: [...state.messages, userMessage],
+        isLoading: true,
+        input: "",
+        submitError: null,
+        activeSubmissionId: submissionId
+      }));
+    });
+
+    logChatEvent("user-message-queued", {
+      submissionId,
+      userMessageId: userMessage.id,
+      messageCountAfterAppend: readChatShellStore().messages.length
+    });
+
+    if (
+      textareaRef.current &&
+      document.activeElement === textareaRef.current &&
+      typeof window.matchMedia === "function" &&
+      window.matchMedia("(max-width: 640px)").matches
+    ) {
+      textareaRef.current.blur();
+      logChatEvent("keyboard-collapsed", { submissionId });
+    }
+
     try {
-      const userMessage: ChatMessageRecord = {
-        id: createClientMessageId(),
-        role: "user",
-        content: question
-      };
-
-      if (
-        textareaRef.current &&
-        document.activeElement === textareaRef.current &&
-        window.matchMedia("(max-width: 640px)").matches
-      ) {
-        textareaRef.current.blur();
-        logChatEvent("keyboard-collapsed", { submissionId });
-      }
-
-      setMessages((current) => [...current, userMessage]);
-      setInput("");
-      logChatEvent("user-message-queued", {
-        submissionId,
-        userMessageId: userMessage.id
-      });
-
       logChatEvent("api-request-start", {
         submissionId,
         endpoint: "/api/chat"
@@ -267,24 +349,30 @@ export function ChatShell() {
         escalationSuggested: payload.escalationSuggested
       });
 
-      setMessages((current) => [
-        ...current,
-        {
-          id: payload.id,
-          role: "assistant",
-          content: payload.answer,
-          bullets: payload.bullets,
-          citations: payload.citations,
-          fallbackTriggered: payload.fallbackTriggered,
-          escalationSuggested: payload.escalationSuggested,
-          answerStatus: payload.answerStatus,
-          confidence: payload.confidence,
-          confidenceScore: payload.confidenceScore,
-          category: payload.category,
-          supportLink: payload.supportLink,
-          fallbackReason: payload.fallbackReason
-        }
-      ]);
+      updateChatShellStore((state) => ({
+        ...state,
+        messages: [
+          ...state.messages,
+          {
+            id: payload.id,
+            role: "assistant",
+            content: payload.answer,
+            bullets: payload.bullets,
+            citations: payload.citations,
+            fallbackTriggered: payload.fallbackTriggered,
+            escalationSuggested: payload.escalationSuggested,
+            answerStatus: payload.answerStatus,
+            confidence: payload.confidence,
+            confidenceScore: payload.confidenceScore,
+            category: payload.category,
+            supportLink: payload.supportLink,
+            fallbackReason: payload.fallbackReason
+          }
+        ],
+        isLoading: false,
+        submitError: null,
+        activeSubmissionId: null
+      }));
       logChatEvent("assistant-message-queued", {
         submissionId,
         assistantMessageId: payload.id,
@@ -295,17 +383,20 @@ export function ChatShell() {
         submissionId,
         error
       });
-      setSubmitError("Unable to send right now. Please try again.");
-      setMessages((current) => [
-        ...current,
-        {
-          ...fallbackNetworkMessage,
-          id: createClientMessageId("err")
-        }
-      ]);
+      updateChatShellStore((state) => ({
+        ...state,
+        messages: [
+          ...state.messages,
+          {
+            ...fallbackNetworkMessage,
+            id: createClientMessageId("err")
+          }
+        ],
+        isLoading: false,
+        submitError: "Unable to send right now. Please try again.",
+        activeSubmissionId: null
+      }));
     } finally {
-      submitInFlightRef.current = false;
-      setIsLoading(false);
       logChatEvent("submit-finished", {
         submissionId
       });
@@ -419,11 +510,11 @@ export function ChatShell() {
               enterKeyHint="send"
               maxLength={600}
               onChange={(event) => {
-                if (submitError) {
-                  setSubmitError(null);
-                }
-
-                setInput(event.target.value);
+                updateChatShellStore((state) => ({
+                  ...state,
+                  input: event.target.value,
+                  submitError: null
+                }));
               }}
               onFocus={revealComposer}
               onKeyDown={handleInputKeyDown}
@@ -455,7 +546,8 @@ export function ChatShell() {
                   onClick={() => {
                     logChatEvent("send-button-pressed", {
                       canSubmit,
-                      isLoading
+                      isLoading,
+                      activeSubmissionId
                     });
                   }}
                   size="lg"
