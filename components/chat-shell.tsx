@@ -2,9 +2,9 @@
 
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import {
-  CircleAlert,
   ArrowUpRight,
   Bot,
+  CircleAlert,
   LoaderCircle,
   SendHorizontal,
   ShieldCheck
@@ -104,9 +104,19 @@ export function ChatShell() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const composerRef = useRef<HTMLDivElement | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const submitInFlightRef = useRef(false);
   const trimmedInput = input.trim();
   const canSubmit = trimmedInput.length > 0 && !isLoading;
+
+  const logChatEvent = (event: string, details?: Record<string, unknown>) => {
+    if (details) {
+      console.info("[chat-shell]", event, details);
+      return;
+    }
+
+    console.info("[chat-shell]", event);
+  };
 
   useEffect(() => {
     if (!scrollRef.current) {
@@ -135,11 +145,33 @@ export function ChatShell() {
     };
 
     viewport.addEventListener("resize", handleViewportChange);
+    viewport.addEventListener("scroll", handleViewportChange);
 
     return () => {
       viewport.removeEventListener("resize", handleViewportChange);
+      viewport.removeEventListener("scroll", handleViewportChange);
     };
   }, []);
+
+  useEffect(() => {
+    const latestMessage = messages.at(-1);
+
+    logChatEvent("messages-rendered", {
+      count: messages.length,
+      lastRole: latestMessage?.role ?? null,
+      lastStatus: latestMessage?.answerStatus ?? null
+    });
+  }, [messages]);
+
+  useEffect(() => {
+    if (!submitError) {
+      return;
+    }
+
+    logChatEvent("submit-error-visible", {
+      submitError
+    });
+  }, [submitError]);
 
   const revealComposer = () => {
     requestAnimationFrame(() => {
@@ -163,12 +195,23 @@ export function ChatShell() {
     const question = (rawQuestion ?? input).trim();
 
     if (!question || isLoading || submitInFlightRef.current) {
+      logChatEvent("submit-skipped", {
+        hasQuestion: Boolean(question),
+        isLoading,
+        submitInFlight: submitInFlightRef.current
+      });
       return;
     }
 
+    const submissionId = createClientMessageId("submit");
     submitInFlightRef.current = true;
     setIsLoading(true);
     setSubmitError(null);
+    logChatEvent("submit-start", {
+      submissionId,
+      questionLength: question.length,
+      fromSuggestion: Boolean(rawQuestion)
+    });
 
     try {
       const userMessage: ChatMessageRecord = {
@@ -177,9 +220,26 @@ export function ChatShell() {
         content: question
       };
 
+      if (
+        textareaRef.current &&
+        document.activeElement === textareaRef.current &&
+        window.matchMedia("(max-width: 640px)").matches
+      ) {
+        textareaRef.current.blur();
+        logChatEvent("keyboard-collapsed", { submissionId });
+      }
+
       setMessages((current) => [...current, userMessage]);
       setInput("");
+      logChatEvent("user-message-queued", {
+        submissionId,
+        userMessageId: userMessage.id
+      });
 
+      logChatEvent("api-request-start", {
+        submissionId,
+        endpoint: "/api/chat"
+      });
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: {
@@ -189,12 +249,23 @@ export function ChatShell() {
           question
         } satisfies ChatRequestPayload)
       });
+      logChatEvent("api-response-received", {
+        submissionId,
+        ok: response.ok,
+        status: response.status
+      });
 
       if (!response.ok) {
         throw new Error(`Chat request failed with ${response.status}`);
       }
 
       const payload = (await response.json()) as ChatResponsePayload;
+      logChatEvent("api-response-parsed", {
+        submissionId,
+        answerStatus: payload.answerStatus,
+        citations: payload.citations.length,
+        escalationSuggested: payload.escalationSuggested
+      });
 
       setMessages((current) => [
         ...current,
@@ -214,8 +285,16 @@ export function ChatShell() {
           fallbackReason: payload.fallbackReason
         }
       ]);
+      logChatEvent("assistant-message-queued", {
+        submissionId,
+        assistantMessageId: payload.id,
+        answerStatus: payload.answerStatus
+      });
     } catch (error) {
-      console.error("Failed to submit question", error);
+      console.error("[chat-shell] submit-failed", {
+        submissionId,
+        error
+      });
       setSubmitError("Unable to send right now. Please try again.");
       setMessages((current) => [
         ...current,
@@ -227,6 +306,9 @@ export function ChatShell() {
     } finally {
       submitInFlightRef.current = false;
       setIsLoading(false);
+      logChatEvent("submit-finished", {
+        submissionId
+      });
     }
   };
 
@@ -316,7 +398,7 @@ export function ChatShell() {
       </div>
 
       <div
-        className="shrink-0 border-t border-white/10 bg-surface/96 px-3 py-3 sm:px-5 sm:py-4"
+        className="relative z-10 shrink-0 border-t border-white/10 bg-surface/96 px-3 py-3 sm:px-5 sm:py-4"
         ref={composerRef}
         style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}
       >
@@ -324,6 +406,9 @@ export function ChatShell() {
           className="space-y-3"
           onSubmit={(event) => {
             event.preventDefault();
+            logChatEvent("form-submit", {
+              canSubmit
+            });
             void submitQuestion();
           }}
         >
@@ -343,6 +428,7 @@ export function ChatShell() {
               onFocus={revealComposer}
               onKeyDown={handleInputKeyDown}
               placeholder="Ask about plans, invoices, billing policy, cancellation guidance, or support routing"
+              ref={textareaRef}
               rows={3}
               value={input}
             />
@@ -364,8 +450,14 @@ export function ChatShell() {
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
                 <span className="text-xs text-muted">{input.length}/600</span>
                 <Button
-                  className="min-h-[48px] w-full min-w-0 sm:min-h-0 sm:w-auto sm:min-w-[150px]"
+                  className="pointer-events-auto relative z-10 min-h-[48px] w-full min-w-0 sm:min-h-0 sm:w-auto sm:min-w-[150px]"
                   disabled={!canSubmit}
+                  onClick={() => {
+                    logChatEvent("send-button-pressed", {
+                      canSubmit,
+                      isLoading
+                    });
+                  }}
                   size="lg"
                   type="submit"
                 >
