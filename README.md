@@ -184,7 +184,7 @@ npm install
 cp .env.example .env.local
 ```
 
-3. Create a Supabase project and run `supabase/schema.sql`.
+3. Create a Supabase project, then use the migration workflow below to link this repo and push the baseline schema.
 
 4. Pick your provider mode:
 
@@ -234,6 +234,69 @@ If your app is not running on port `3000`, point the smoke script at the correct
 ```bash
 APP_BASE_URL=http://localhost:3001 npm run smoke
 ```
+
+## Supabase Migrations
+
+This repo now includes Supabase CLI project files plus a baseline migration created from `supabase/schema.sql`.
+
+- `supabase/config.toml`
+- `supabase/migrations/20260315081147_initial_schema.sql`
+- `supabase/schema.sql`
+
+The Supabase CLI is installed as a dev dependency, so `npx supabase ...` uses the repo version.
+
+### Link this repo to your Supabase project
+
+1. Log in to Supabase CLI:
+
+```bash
+npx supabase login
+```
+
+2. Link the repo to your remote project:
+
+```bash
+npx supabase link --project-ref your-project-ref
+```
+
+`supabase link` will prompt for the database password of the remote project.
+
+### Check migration state
+
+```bash
+npx supabase migration list
+```
+
+Run this after linking so you can compare local migrations with the remote migration history.
+
+### Push migrations to the remote database
+
+For a fresh remote project, review the plan first:
+
+```bash
+npx supabase db push --dry-run
+```
+
+Then apply the migration:
+
+```bash
+npx supabase db push
+```
+
+Production-safe note:
+
+- If the remote database already contains tables created manually in the SQL editor, do not push the baseline migration blindly.
+- In that case, reconcile the remote state first before applying new migrations.
+
+### What you still need to do in the Supabase dashboard
+
+- Create the Supabase project if you have not created it yet.
+- Save the database password you choose during project creation because the CLI will ask for it when linking or pushing.
+- Copy the project ref from the project URL or project settings so you can run `npx supabase link --project-ref your-project-ref`.
+- Copy the project API URL into `SUPABASE_URL` in `.env.local`.
+- Copy the service role key into `SUPABASE_SERVICE_ROLE_KEY` in `.env.local`.
+- If you already ran `supabase/schema.sql` manually in the remote SQL editor, stop before `db push` and reconcile that database first instead of applying the baseline migration a second time.
+- You do not need to enable `vector` or `pgcrypto` manually in the dashboard because the migration creates those extensions.
 
 ## Production Hosting
 
