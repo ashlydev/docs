@@ -226,7 +226,8 @@ export function ChatShell() {
   }, []);
 
   useEffect(() => {
-    const latestMessage = messages.at(-1);
+    const latestMessage =
+      messages.length > 0 ? messages[messages.length - 1] : undefined;
 
     logChatEvent("messages-rendered", {
       count: messages.length,
