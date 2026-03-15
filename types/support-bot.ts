@@ -31,6 +31,7 @@ export type ChatMessageRecord = {
   confidenceScore?: number;
   category?: QuestionCategory;
   supportLink?: string;
+  fallbackReason?: string;
 };
 
 export type ChatResponsePayload = {

@@ -55,6 +55,11 @@ function confidenceToScore(confidence: AnswerConfidence) {
   }
 }
 
+const refusalMessage =
+  "I can't perform account actions or access private account data from the available documentation. Please contact support for billing changes, cancellations, refunds, or account-specific help.";
+const lowConfidenceMessage =
+  "I'm not confident enough to answer that from the available documentation.";
+
 function buildFallbackResponse({
   answer,
   answerStatus,
@@ -78,7 +83,7 @@ function buildFallbackResponse({
     bullets: [],
     citations: [],
     answerStatus,
-    fallbackTriggered: true,
+    fallbackTriggered: answerStatus === "fallback",
     escalationSuggested,
     confidence,
     confidenceScore,
@@ -152,8 +157,7 @@ export async function answerSupportQuestion(
 
   if (isAccountActionRequest(cleanedQuestion)) {
     response = buildFallbackResponse({
-      answer:
-        "I can't perform account actions or access private account data from the available documentation. Please contact human support for help with that request.",
+      answer: refusalMessage,
       answerStatus: "refused",
       category: "account_action",
       fallbackReason: "account_action",
@@ -199,12 +203,11 @@ export async function answerSupportQuestion(
 
     if (retrieval.shouldFallback) {
       response = buildFallbackResponse({
-        answer:
-          "I'm not confident enough to answer that from the available documentation. Please contact human support.",
+        answer: lowConfidenceMessage,
         answerStatus: "fallback",
         category: "other",
         fallbackReason: "weak_retrieval",
-        escalationSuggested: true,
+        escalationSuggested: false,
         confidenceScore: retrieval.confidenceScore
       });
 
@@ -232,13 +235,12 @@ export async function answerSupportQuestion(
       citations.length === 0
     ) {
       response = buildFallbackResponse({
-        answer:
-          "I'm not confident enough to answer that from the available documentation. Please contact human support.",
+        answer: lowConfidenceMessage,
         answerStatus: "fallback",
         category: generated.category,
         fallbackReason:
           generated.fallbackReason || "insufficient_evidence_after_generation",
-        escalationSuggested: true,
+        escalationSuggested: false,
         confidenceScore: mergedConfidence.confidenceScore
       });
 
@@ -297,12 +299,11 @@ export async function answerSupportQuestion(
     }
 
     response = buildFallbackResponse({
-      answer:
-        "I'm not confident enough to answer that from the available documentation. Please contact human support.",
+      answer: lowConfidenceMessage,
       answerStatus: "fallback",
       category: "other",
       fallbackReason: "generation_error",
-      escalationSuggested: true,
+      escalationSuggested: false,
       confidenceScore: 0.18
     });
 

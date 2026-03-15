@@ -16,11 +16,9 @@ export function EscalationCard({ supportLink }: EscalationCardProps) {
             <LifeBuoy className="h-4 w-4" />
           </div>
           <div>
-            <p className="text-sm font-semibold text-sky-50">
-              Need human help? Contact support.
-            </p>
+            <p className="text-sm font-semibold text-sky-50">Need help from support?</p>
             <p className="mt-1 text-sm leading-6 text-sky-100/75">
-              Use the documented human support path for account-specific work, billing changes, or low-confidence edge cases.
+              For account-specific actions or billing changes, continue with the human support path.
             </p>
           </div>
         </div>

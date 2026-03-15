@@ -18,8 +18,7 @@ import type {
 const fallbackNetworkMessage: ChatMessageRecord = {
   id: "network-fallback",
   role: "assistant",
-  content:
-    "The local answer service is unavailable right now. Please contact human support.",
+  content: "The answer service is unavailable right now.",
   bullets: [],
   citations: [],
   fallbackTriggered: true,
@@ -28,7 +27,8 @@ const fallbackNetworkMessage: ChatMessageRecord = {
   confidence: "low",
   confidenceScore: 0.12,
   category: "other",
-  supportLink: siteConfig.supportLink
+  supportLink: siteConfig.supportLink,
+  fallbackReason: "service_unavailable"
 };
 
 function LoadingMessage() {
@@ -130,7 +130,8 @@ export function ChatShell() {
           confidence: payload.confidence,
           confidenceScore: payload.confidenceScore,
           category: payload.category,
-          supportLink: payload.supportLink
+          supportLink: payload.supportLink,
+          fallbackReason: payload.fallbackReason
         }
       ]);
     } catch (error) {

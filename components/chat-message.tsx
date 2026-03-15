@@ -23,8 +23,39 @@ function confidenceVariant(confidence?: ChatMessageRecord["confidence"]) {
   return "warning";
 }
 
+function shouldShowFallbackCard(message: ChatMessageRecord) {
+  if (message.role === "user" || message.answerStatus !== "fallback") {
+    return false;
+  }
+
+  return !["config_missing", "model_service_unavailable", "service_unavailable"].includes(
+    message.fallbackReason ?? ""
+  );
+}
+
+function shouldShowEscalationCard(message: ChatMessageRecord) {
+  if (message.role === "user" || !message.supportLink) {
+    return false;
+  }
+
+  if (message.answerStatus === "refused") {
+    return true;
+  }
+
+  if (
+    message.answerStatus === "fallback" &&
+    ["model_service_unavailable", "service_unavailable"].includes(message.fallbackReason ?? "")
+  ) {
+    return true;
+  }
+
+  return message.answerStatus === "grounded" && message.escalationSuggested === true;
+}
+
 export function ChatMessage({ message }: ChatMessageProps) {
   const isUser = message.role === "user";
+  const showConfidenceBadge =
+    !isUser && message.answerStatus === "grounded" && Boolean(message.confidence);
 
   return (
     <div className={cn("flex", isUser ? "justify-end" : "justify-start")}>
@@ -46,7 +77,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
             {isUser ? <Sparkles className="h-4 w-4" /> : <Bot className="h-4 w-4" />}
           </span>
           {isUser ? "You" : "Support assistant"}
-          {!isUser && message.confidence ? (
+          {showConfidenceBadge ? (
             <Badge className="ml-auto" variant={confidenceVariant(message.confidence)}>
               {message.confidence} confidence
             </Badge>
@@ -69,9 +100,9 @@ export function ChatMessage({ message }: ChatMessageProps) {
         </div>
 
         {!isUser && message.citations ? <CitationList citations={message.citations} /> : null}
-        {!isUser && message.fallbackTriggered ? <FallbackCard /> : null}
-        {!isUser && message.escalationSuggested && message.supportLink ? (
-          <EscalationCard supportLink={message.supportLink} />
+        {shouldShowFallbackCard(message) ? <FallbackCard /> : null}
+        {shouldShowEscalationCard(message) ? (
+          <EscalationCard supportLink={message.supportLink!} />
         ) : null}
       </div>
     </div>
