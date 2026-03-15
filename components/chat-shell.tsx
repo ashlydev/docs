@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import {
+  CircleAlert,
   ArrowUpRight,
   Bot,
   LoaderCircle,
@@ -14,6 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
+import { createClientMessageId } from "@/lib/client-id";
 import { siteConfig } from "@/lib/site-config";
 import type {
   ChatMessageRecord,
@@ -99,7 +101,10 @@ export function ChatShell() {
   const [messages, setMessages] = useState<ChatMessageRecord[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
+  const composerRef = useRef<HTMLDivElement | null>(null);
+  const submitInFlightRef = useRef(false);
   const trimmedInput = input.trim();
   const canSubmit = trimmedInput.length > 0 && !isLoading;
 
@@ -114,6 +119,37 @@ export function ChatShell() {
     });
   }, [messages, isLoading]);
 
+  useEffect(() => {
+    const viewport = window.visualViewport;
+
+    if (!viewport) {
+      return;
+    }
+
+    const handleViewportChange = () => {
+      if (document.activeElement instanceof HTMLTextAreaElement) {
+        composerRef.current?.scrollIntoView({
+          block: "end"
+        });
+      }
+    };
+
+    viewport.addEventListener("resize", handleViewportChange);
+
+    return () => {
+      viewport.removeEventListener("resize", handleViewportChange);
+    };
+  }, []);
+
+  const revealComposer = () => {
+    requestAnimationFrame(() => {
+      composerRef.current?.scrollIntoView({
+        block: "end",
+        behavior: "smooth"
+      });
+    });
+  };
+
   const handleInputKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
     if (event.key !== "Enter" || event.shiftKey) {
       return;
@@ -126,21 +162,24 @@ export function ChatShell() {
   const submitQuestion = async (rawQuestion?: string) => {
     const question = (rawQuestion ?? input).trim();
 
-    if (!question || isLoading) {
+    if (!question || isLoading || submitInFlightRef.current) {
       return;
     }
 
-    const userMessage: ChatMessageRecord = {
-      id: crypto.randomUUID(),
-      role: "user",
-      content: question
-    };
-
-    setMessages((current) => [...current, userMessage]);
-    setInput("");
+    submitInFlightRef.current = true;
     setIsLoading(true);
+    setSubmitError(null);
 
     try {
+      const userMessage: ChatMessageRecord = {
+        id: createClientMessageId(),
+        role: "user",
+        content: question
+      };
+
+      setMessages((current) => [...current, userMessage]);
+      setInput("");
+
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: {
@@ -177,20 +216,22 @@ export function ChatShell() {
       ]);
     } catch (error) {
       console.error("Failed to submit question", error);
+      setSubmitError("Unable to send right now. Please try again.");
       setMessages((current) => [
         ...current,
         {
           ...fallbackNetworkMessage,
-          id: crypto.randomUUID()
+          id: createClientMessageId("err")
         }
       ]);
     } finally {
+      submitInFlightRef.current = false;
       setIsLoading(false);
     }
   };
 
   return (
-    <Card className="workspace-panel flex h-[82svh] min-h-[580px] max-h-[880px] flex-col overflow-hidden border-white/10 p-0 sm:min-h-[640px] lg:h-[840px]">
+    <Card className="workspace-panel flex h-[82svh] min-h-0 max-h-[calc(100svh-1.25rem)] flex-col overflow-hidden border-white/10 p-0 supports-[height:100dvh]:h-[82dvh] supports-[height:100dvh]:max-h-[calc(100dvh-1.25rem)] sm:min-h-[640px] sm:max-h-[880px] lg:h-[840px]">
       <div className="border-b border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.035),rgba(255,255,255,0.015))] px-4 py-4 sm:px-6 sm:py-5">
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
           <div className="min-w-0">
@@ -221,7 +262,7 @@ export function ChatShell() {
       </div>
 
       <div className="min-h-0 flex-1 bg-[linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0))] px-3 py-4 sm:px-5 sm:py-5">
-        <div className="h-full min-h-0 overflow-y-auto pr-1" ref={scrollRef}>
+        <div className="h-full min-h-0 overflow-y-auto overscroll-contain pr-1" ref={scrollRef}>
           {messages.length === 0 ? (
             <div className="flex min-h-full items-center">
               <div className="mx-auto w-full max-w-3xl rounded-[28px] border border-dashed border-white/10 bg-background/20 px-4 py-8 sm:px-8 sm:py-10">
@@ -274,7 +315,11 @@ export function ChatShell() {
         </div>
       </div>
 
-      <div className="shrink-0 border-t border-white/10 bg-surface/96 px-3 py-3 sm:px-5 sm:py-4">
+      <div
+        className="shrink-0 border-t border-white/10 bg-surface/96 px-3 py-3 sm:px-5 sm:py-4"
+        ref={composerRef}
+        style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}
+      >
         <form
           className="space-y-3"
           onSubmit={(event) => {
@@ -286,22 +331,40 @@ export function ChatShell() {
             <Textarea
               className="min-h-[104px] resize-none border-transparent bg-transparent px-1 py-1 text-[15px] leading-6 focus:border-transparent focus:ring-0 sm:min-h-[92px]"
               disabled={isLoading}
+              enterKeyHint="send"
               maxLength={600}
-              onChange={(event) => setInput(event.target.value)}
+              onChange={(event) => {
+                if (submitError) {
+                  setSubmitError(null);
+                }
+
+                setInput(event.target.value);
+              }}
+              onFocus={revealComposer}
               onKeyDown={handleInputKeyDown}
               placeholder="Ask about plans, invoices, billing policy, cancellation guidance, or support routing"
               rows={3}
               value={input}
             />
 
+            {submitError ? (
+              <div
+                aria-live="polite"
+                className="mt-3 flex items-start gap-2 rounded-2xl border border-amber-300/15 bg-amber-300/8 px-3 py-2.5 text-sm text-[#f1dfc2]"
+              >
+                <CircleAlert className="mt-0.5 h-4 w-4 shrink-0" />
+                <p>{submitError}</p>
+              </div>
+            ) : null}
+
             <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-xs leading-5 text-muted">
                 Public docs only. Billing changes, cancellations, refunds, and private-data requests always route to support.
               </p>
-              <div className="flex items-center justify-between gap-3 sm:justify-end">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
                 <span className="text-xs text-muted">{input.length}/600</span>
                 <Button
-                  className="min-w-[132px] sm:min-w-[150px]"
+                  className="min-h-[48px] w-full min-w-0 sm:min-h-0 sm:w-auto sm:min-w-[150px]"
                   disabled={!canSubmit}
                   size="lg"
                   type="submit"
