@@ -1,4 +1,4 @@
-import { ArrowUpRight, ChartColumn, ShieldCheck, TriangleAlert } from "lucide-react";
+import { ChartColumn, ShieldCheck, TriangleAlert } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -28,34 +28,35 @@ export function AnalyticsPanel({ summary }: AnalyticsPanelProps) {
   ];
 
   return (
-    <section className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-      <Card className="panel p-6 md:p-8">
-        <div className="flex items-start justify-between gap-4">
-          <div>
+    <section className="grid gap-6 xl:grid-cols-[minmax(0,1.05fr)_360px]">
+      <Card className="workspace-panel p-6 sm:p-8">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div className="max-w-2xl">
             <Badge variant={summary.mode === "live" ? "success" : "accent"}>
-              {summary.mode === "live" ? "live activity" : "pilot baseline"}
+              {summary.mode === "live" ? "Live telemetry" : "Pilot baseline"}
             </Badge>
             <h2 className="mt-4 font-display text-3xl font-semibold text-text">
-              What the support flow reveals
+              Product telemetry that supports the buyer conversation
             </h2>
-            <p className="mt-3 max-w-xl text-sm leading-7 text-muted">
-              Track answer coverage, fallback rate, escalation volume, and the topics that create the most repetitive support demand.
+            <p className="mt-3 text-sm leading-7 text-muted">
+              Show how much of the repetitive support load is already covered, where documentation is thin, and how often the flow routes users to a human.
             </p>
           </div>
-          <div className="hidden h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.03] text-sky-200 md:inline-flex">
-            <ArrowUpRight className="h-5 w-5" />
-          </div>
+          <p className="max-w-sm text-sm leading-7 text-muted">
+            These metrics help position the pilot as an operational layer, not just a chat surface.
+          </p>
         </div>
+
         <div className="mt-8 grid gap-4 md:grid-cols-3">
           {metrics.map((metric, index) => {
             const Icon = analyticsIcons[index];
 
             return (
               <div
-                className="rounded-[24px] border border-white/10 bg-white/[0.025] p-5"
+                className="rounded-[24px] border border-white/10 bg-white/[0.03] p-5"
                 key={metric.label}
               >
-                <div className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] text-sky-100">
+                <div className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.045] text-accent">
                   <Icon className="h-4 w-4" />
                 </div>
                 <p className="mt-5 text-sm text-muted">{metric.label}</p>
@@ -68,12 +69,12 @@ export function AnalyticsPanel({ summary }: AnalyticsPanelProps) {
         </div>
       </Card>
 
-      <Card className="panel p-6 md:p-8">
-        <p className="text-xs uppercase tracking-[0.2em] text-muted">Top categories</p>
-        <div className="mt-6 space-y-3">
+      <Card className="workspace-panel p-6 sm:p-7">
+        <p className="eyebrow">Current support themes</p>
+        <div className="mt-5 space-y-3">
           {summary.topCategories.map((category) => (
             <div
-              className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.025] px-4 py-3"
+              className="flex items-center justify-between rounded-[20px] border border-white/10 bg-white/[0.03] px-4 py-3"
               key={category.label}
             >
               <span className="text-sm font-medium text-text">{category.label}</span>
@@ -81,8 +82,8 @@ export function AnalyticsPanel({ summary }: AnalyticsPanelProps) {
             </div>
           ))}
         </div>
-        <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.025] p-4 text-sm leading-7 text-muted">
-          Use this view to show where documentation is already strong, where human handoff still matters, and where a fixed-scope pilot can remove repetitive support work first.
+        <div className="mt-6 rounded-[22px] border border-white/10 bg-background/30 p-4 text-sm leading-7 text-muted">
+          Use this view to show where the docs are already strong, where fallback still protects the experience, and where a pilot can reduce repeat support work first.
         </div>
       </Card>
     </section>

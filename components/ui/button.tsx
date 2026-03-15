@@ -9,15 +9,15 @@ export const buttonVariants = cva(
     variants: {
       variant: {
         default:
-          "bg-accent text-slate-950 shadow-lg shadow-sky-500/20 hover:bg-sky-300",
+          "bg-accent text-stone-950 shadow-[0_16px_36px_rgba(0,0,0,0.26)] hover:bg-[#d8c1a3]",
         secondary:
-          "border border-white/10 bg-white/5 text-text hover:border-white/20 hover:bg-white/10",
-        ghost: "bg-transparent text-muted hover:bg-white/5 hover:text-text"
+          "border border-white/10 bg-white/[0.04] text-text hover:border-white/16 hover:bg-white/[0.07]",
+        ghost: "bg-transparent text-muted hover:bg-white/[0.05] hover:text-text"
       },
       size: {
         default: "h-11 px-5",
         sm: "h-9 px-4 text-xs",
-        lg: "h-12 px-6 text-base"
+        lg: "h-12 px-6 text-[15px]"
       }
     },
     defaultVariants: {

@@ -1,4 +1,4 @@
-import { Bot, Sparkles } from "lucide-react";
+import { Bot, User } from "lucide-react";
 
 import { CitationList } from "@/components/citation-list";
 import { EscalationCard } from "@/components/escalation-card";
@@ -61,22 +61,24 @@ export function ChatMessage({ message }: ChatMessageProps) {
     <div className={cn("flex", isUser ? "justify-end" : "justify-start")}>
       <div
         className={cn(
-          "max-w-[92%] rounded-[28px] border px-5 py-4 shadow-soft md:max-w-[86%]",
+          "max-w-[94%] rounded-[26px] border px-4 py-4 shadow-soft sm:px-5 md:max-w-[88%]",
           isUser
-            ? "border-sky-300/20 bg-sky-400/[0.12] text-sky-50"
-            : "border-white/10 bg-white/[0.035] text-text"
+            ? "border-[rgba(204,176,137,0.22)] bg-[rgba(204,176,137,0.09)] text-text"
+            : "border-white/10 bg-surface-2/72 text-text"
         )}
       >
-        <div className="flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-muted">
+        <div className="flex items-center gap-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted">
           <span
             className={cn(
-              "inline-flex h-8 w-8 items-center justify-center rounded-full",
-              isUser ? "bg-sky-400/[0.15] text-sky-100" : "bg-white/[0.08] text-sky-100"
+              "inline-flex h-8 w-8 items-center justify-center rounded-full border",
+              isUser
+                ? "border-[rgba(204,176,137,0.2)] bg-[rgba(204,176,137,0.08)] text-[#ead9bf]"
+                : "border-white/10 bg-white/[0.05] text-[#ead9bf]"
             )}
           >
-            {isUser ? <Sparkles className="h-4 w-4" /> : <Bot className="h-4 w-4" />}
+            {isUser ? <User className="h-4 w-4" /> : <Bot className="h-4 w-4" />}
           </span>
-          {isUser ? "You" : "Support assistant"}
+          <span>{isUser ? "You" : "Support assistant"}</span>
           {showConfidenceBadge ? (
             <Badge className="ml-auto" variant={confidenceVariant(message.confidence)}>
               {message.confidence} confidence
@@ -85,13 +87,15 @@ export function ChatMessage({ message }: ChatMessageProps) {
         </div>
 
         <div className="mt-4 space-y-4">
-          <p className="whitespace-pre-wrap text-sm leading-7 md:text-[15px]">{message.content}</p>
+          <p className="whitespace-pre-wrap text-[15px] leading-7 text-text">
+            {message.content}
+          </p>
 
           {message.bullets && message.bullets.length > 0 ? (
-            <ul className="space-y-2 text-sm leading-6 text-muted">
+            <ul className="space-y-2.5 text-sm leading-7 text-muted">
               {message.bullets.map((bullet) => (
                 <li className="flex gap-3" key={bullet}>
-                  <span className="mt-2 h-1.5 w-1.5 rounded-full bg-sky-300" />
+                  <span className="mt-3 h-1.5 w-1.5 rounded-full bg-accent" />
                   <span>{bullet}</span>
                 </li>
               ))}

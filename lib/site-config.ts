@@ -8,75 +8,97 @@ const publicTeardownLink =
 export const siteConfig = {
   name: "Docs-Based Support Bot for Scheduling SaaS",
   subtitle:
-    "Grounded answers from curated support docs with source citations and human escalation for pricing, billing, and support questions.",
-  heroEyebrow: "Fixed-scope pilot for scheduling SaaS",
+    "Source-backed support guidance for scheduling SaaS teams, grounded in public documentation and designed to hand off account-specific work cleanly.",
+  heroEyebrow: "Grounded support workflow for scheduling SaaS",
   botName: "Support Knowledge Assistant",
-  botStatus: "Public-doc answers with citations, fallback, and human escalation",
+  botStatus: "Answers from public docs with citations and a clear human support path",
   tryDemoHref: "#demo",
   howItWorksHref: "#how-it-works",
-  primaryCtaLabel: "Review support flow",
+  primaryCtaLabel: "Explore the support workspace",
   secondaryCtaLabel: "Book a teardown",
   teardownHref: publicTeardownLink,
   supportLink: publicSupportLink,
   chatTrustLine:
-    "Ask about plans, billing policies, invoices, support routing, or other public workflows.",
-  emptyStateExamples: [
-    "Which plan is best for a small team?",
-    "How do invoices or billing policies work?",
-    "Where should customers contact support?"
+    "Ask about plans, billing policies, invoices, cancellation guidance, or how customers should reach support.",
+  suggestedPrompts: [
+    {
+      label: "Plans",
+      prompt: "What plans are available?",
+      description: "Review Starter, Growth, Team, and Enterprise."
+    },
+    {
+      label: "Fit",
+      prompt: "Which plan fits a small team?",
+      description: "See the recommended public plan guidance."
+    },
+    {
+      label: "Billing",
+      prompt: "How do invoices work?",
+      description: "Understand invoice access and billing workflow."
+    },
+    {
+      label: "Support",
+      prompt: "How do I contact support?",
+      description: "Route account-specific work to the right path."
+    },
+    {
+      label: "Cancellation",
+      prompt: "What happens if I cancel?",
+      description: "Check cancellation timing and support boundaries."
+    }
   ],
   featureCards: [
     {
-      title: "Grounded answers from docs",
+      title: "Grounded answers from public docs",
       description:
-        "Answer repetitive pricing, billing, and support questions from a controlled knowledge base instead of forcing visitors into support queues."
+        "Handle repetitive pricing, billing, and support questions from a controlled knowledge base instead of pushing every visitor into support."
     },
     {
       title: "Source-backed citations",
       description:
-        "Show the exact public pages behind each supported answer so teams can verify the experience at a glance."
+        "Keep every supported answer tied to the underlying source material so teams can verify the guidance quickly."
     },
     {
-      title: "Safe fallback and refusal",
+      title: "Clear support boundaries",
       description:
-        "Low-confidence retrieval and account-specific requests trigger a clean fallback instead of unsupported claims."
+        "Low-confidence questions and account-specific requests stay contained with a concise fallback or a direct support handoff."
     },
     {
-      title: "Human escalation and analytics",
+      title: "Operational visibility",
       description:
-        "Risky requests route to human support while interaction logging highlights recurring support demand."
+        "Interaction logging highlights the documentation gaps and support themes worth fixing first."
     }
   ],
   useCases: [
-    "Pricing, billing, invoice, and support-route questions can be handled from public help content.",
-    "Supported answers stay tied to retrieved documentation instead of generic chatbot copy.",
+    "Pricing, billing, invoice, and support-route questions stay grounded in published support material.",
+    "Supported answers remain tied to retrieved documentation instead of generic chatbot language.",
     "Account-specific work and weak evidence route cleanly to human support."
   ],
   howItWorksSteps: [
     {
-      title: "Ingest stable support docs",
+      title: "Index the support knowledge base",
       description:
-        "Load curated local demo docs or your own public support pages into a searchable support knowledge base."
+        "Load bundled demo docs or your own public support pages into the searchable support knowledge base."
     },
     {
-      title: "Retrieve relevant sources",
+      title: "Retrieve the strongest matches",
       description:
-        "Embed each question and retrieve the strongest matching chunks from pgvector before the model answers."
+        "Embed each question and pull the best matching chunks from pgvector before the model responds."
     },
     {
       title: "Answer with citations",
       description:
-        "Generate a concise answer only from retrieved context and attach the supporting sources underneath."
+        "Respond only from retrieved context and keep the supporting sources attached underneath the answer."
     },
     {
-      title: "Escalate when uncertain",
+      title: "Escalate the risky cases",
       description:
-        "If confidence is weak or the request becomes account-specific, the experience falls back and routes to support."
+        "If the evidence is weak or the request becomes account-specific, the experience hands the user to support cleanly."
     }
   ],
-  footerEyebrow: "Fixed-scope pilot",
+  footerEyebrow: "Next step",
   footerHeadline:
-    "Launch a docs-based support bot pilot grounded in stable support docs, citations, and clear human escalation.",
+    "See how a grounded support layer would fit your public help flow.",
   footerCtaLabel: "Request a pilot"
 };
 

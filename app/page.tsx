@@ -1,4 +1,4 @@
-import { ArrowRight, CheckCircle2, LockKeyhole, Sparkles } from "lucide-react";
+import { ArrowRight, CheckCircle2, LibraryBig, ShieldCheck } from "lucide-react";
 
 import { AnalyticsPanel } from "@/components/analytics-panel";
 import { ChatShell } from "@/components/chat-shell";
@@ -18,57 +18,42 @@ export default async function HomePage() {
   const sourceSet = getDefaultSourceSet();
 
   return (
-    <main className="relative overflow-hidden pb-12">
-      <div className="pointer-events-none absolute inset-0 -z-10 bg-grid-fade bg-[size:96px_96px] opacity-[0.08]" />
-      <HeroSection sourceSetLabel={sourceSet.label} />
-      <FeatureCards />
+    <main className="relative overflow-hidden pb-16">
+      <div className="pointer-events-none absolute inset-0 -z-10 bg-grid-fade bg-[size:120px_120px] opacity-[0.035]" />
+      <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[420px] bg-[radial-gradient(circle_at_top,rgba(204,176,137,0.12),transparent_55%)]" />
 
-      <section className="section-shell mt-16" id="demo">
-        <div className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
-          <div className="space-y-6">
-            <Card className="panel p-6 md:p-8">
-              <Badge variant="accent">Support flow preview</Badge>
-              <h2 className="mt-4 font-display text-3xl font-semibold text-text md:text-4xl">
-                Designed to reduce repetitive support questions
+      <HeroSection sourceSetLabel={sourceSet.label} />
+
+      <section className="section-shell mt-8 md:mt-10" id="demo">
+        <div className="grid gap-6 xl:grid-cols-[360px_minmax(0,1fr)]">
+          <div className="space-y-4 xl:sticky xl:top-6">
+            <Card className="workspace-panel p-6 sm:p-7">
+              <Badge variant="accent">Support workspace</Badge>
+              <h2 className="mt-4 font-display text-2xl font-semibold text-text">
+                Built to answer the repeatable public questions first
               </h2>
-              <p className="mt-4 text-sm leading-7 text-muted">
-                This support flow answers pricing, billing, invoice, and support-route questions from curated support docs. Supported answers stay grounded in retrieved sources, and anything risky or account-specific moves to human support.
+              <p className="mt-3 text-sm leading-7 text-muted">
+                The conversation experience stays tight on one job: answer from the indexed knowledge base, show the source, and route the risky work to support.
               </p>
-              <div className="mt-8 grid gap-4 md:grid-cols-2">
-                <div className="rounded-[24px] border border-white/10 bg-white/[0.025] p-5">
-                  <div className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] text-sky-100">
-                    <Sparkles className="h-4 w-4" />
+              <div className="mt-6 space-y-3">
+                {siteConfig.useCases.map((useCase) => (
+                  <div
+                    className="flex gap-3 rounded-[20px] border border-white/10 bg-white/[0.03] px-4 py-3"
+                    key={useCase}
+                  >
+                    <CheckCircle2 className="mt-1 h-4 w-4 shrink-0 text-success" />
+                    <p className="text-sm leading-6 text-muted">{useCase}</p>
                   </div>
-                  <p className="mt-4 text-sm font-semibold text-text">What this support flow handles well</p>
-                  <ul className="mt-4 space-y-3 text-sm leading-7 text-muted">
-                    {siteConfig.useCases.map((useCase) => (
-                      <li className="flex gap-3" key={useCase}>
-                        <CheckCircle2 className="mt-1 h-4 w-4 shrink-0 text-emerald-300" />
-                        <span>{useCase}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-                <div className="rounded-[24px] border border-white/10 bg-white/[0.025] p-5">
-                  <div className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] text-sky-100">
-                    <LockKeyhole className="h-4 w-4" />
-                  </div>
-                  <p className="mt-4 text-sm font-semibold text-text">What stays with human support</p>
-                  <ul className="mt-4 space-y-3 text-sm leading-7 text-muted">
-                    <li>Billing changes, cancellations, refunds, and account mutations always escalate.</li>
-                    <li>No private customer data or account access is implied.</li>
-                    <li>Low-confidence answers fall back instead of guessing.</li>
-                  </ul>
-                </div>
+                ))}
               </div>
             </Card>
 
-            <Card className="panel p-6 md:p-8">
+            <Card className="workspace-panel p-6 sm:p-7">
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <p className="text-xs uppercase tracking-[0.2em] text-muted">Public knowledge base</p>
-                  <h3 className="mt-3 font-display text-2xl font-semibold text-text">
-                    Stable support content already mapped into the demo
+                  <p className="eyebrow">Current indexed knowledge base</p>
+                  <h3 className="mt-3 font-display text-xl font-semibold text-text">
+                    Stable demo content already mapped into the workspace
                   </h3>
                 </div>
                 {sourceSet.reviewHref ? (
@@ -85,32 +70,63 @@ export default async function HomePage() {
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </a>
                 ) : (
-                  <Badge>{sourceSet.reviewLabel ?? "Repo-local docs"}</Badge>
+                  <Badge>{sourceSet.reviewLabel ?? "Bundled docs"}</Badge>
                 )}
               </div>
               <p className="mt-4 text-sm leading-7 text-muted">
-                {sourceSet.description} The hosted demo defaults to repo-local docs so ingestion stays stable even when third-party sites throttle or block server-side fetches.
+                {sourceSet.description} This keeps the hosted experience stable while still demonstrating citations, fallback behavior, and escalation boundaries.
               </p>
-              <div className="mt-6 grid gap-3 sm:grid-cols-2">
+              <div className="mt-5 space-y-2.5">
                 {sourceSet.sources.slice(0, 6).map((item) => (
                   <div
-                    className="rounded-2xl border border-white/10 bg-white/[0.025] px-4 py-3"
+                    className="flex items-start gap-3 rounded-[18px] border border-white/10 bg-white/[0.03] px-4 py-3"
                     key={item.url}
                   >
-                    <p className="text-sm font-medium text-text">{item.label}</p>
-                    <p className="mt-1 truncate text-xs text-muted">{item.url}</p>
+                    <div className="inline-flex h-9 w-9 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] text-accent">
+                      <LibraryBig className="h-4 w-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-text">{item.label}</p>
+                      <p className="mt-1 truncate text-xs text-muted">{item.url}</p>
+                    </div>
                   </div>
                 ))}
               </div>
             </Card>
+
+            <Card className="workspace-panel p-6 sm:p-7">
+              <div className="flex items-start gap-3">
+                <div className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] text-success">
+                  <ShieldCheck className="h-4 w-4" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-text">Support boundaries stay explicit</p>
+                  <p className="mt-2 text-sm leading-7 text-muted">
+                    Billing changes, cancellations, refunds, and private account requests continue through the documented support path instead of being improvised by the assistant.
+                  </p>
+                </div>
+              </div>
+              <a
+                className={buttonVariants({
+                  variant: "secondary",
+                  size: "lg"
+                }) + " mt-6 w-full"}
+                href={siteConfig.teardownHref}
+                rel="noreferrer"
+                target="_blank"
+              >
+                Talk through your support flow
+              </a>
+            </Card>
           </div>
 
-          <div className="lg:sticky lg:top-6">
+          <div className="min-w-0">
             <ChatShell />
           </div>
         </div>
       </section>
 
+      <FeatureCards />
       <HowItWorks />
 
       <section className="section-shell mt-16">

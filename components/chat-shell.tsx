@@ -1,7 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
-import { ArrowUpRight, Bot, LoaderCircle, SendHorizontal, ShieldCheck } from "lucide-react";
+import {
+  ArrowUpRight,
+  Bot,
+  LoaderCircle,
+  SendHorizontal,
+  ShieldCheck
+} from "lucide-react";
 
 import { ChatMessage } from "@/components/chat-message";
 import { Badge } from "@/components/ui/badge";
@@ -34,23 +40,58 @@ const fallbackNetworkMessage: ChatMessageRecord = {
 function LoadingMessage() {
   return (
     <div className="flex justify-start">
-      <div className="max-w-[92%] rounded-[28px] border border-white/10 bg-white/[0.035] px-5 py-4 shadow-soft md:max-w-[86%]">
-        <div className="flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-muted">
-          <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-white/[0.08] text-sky-100">
+      <div className="max-w-[94%] rounded-[26px] border border-white/10 bg-surface-2/72 px-4 py-4 shadow-soft sm:px-5 md:max-w-[88%]">
+        <div className="flex items-center gap-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted">
+          <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-white/[0.05] text-[#ead9bf]">
             <Bot className="h-4 w-4" />
           </span>
           Support assistant
           <Badge className="ml-auto" variant="accent">
-            thinking
+            retrieving
           </Badge>
         </div>
         <div className="mt-4 space-y-3">
-          <div className="h-3 w-40 animate-pulse rounded-full bg-white/10" />
+          <div className="h-3 w-32 animate-pulse rounded-full bg-white/10" />
           <div className="h-3 w-full animate-pulse rounded-full bg-white/10" />
-          <div className="h-3 w-5/6 animate-pulse rounded-full bg-white/10" />
+          <div className="h-3 w-4/5 animate-pulse rounded-full bg-white/10" />
         </div>
       </div>
     </div>
+  );
+}
+
+type PromptSuggestionProps = {
+  label: string;
+  prompt: string;
+  description: string;
+  onSelect: (prompt: string) => void;
+};
+
+function PromptSuggestion({
+  label,
+  prompt,
+  description,
+  onSelect
+}: PromptSuggestionProps) {
+  return (
+    <button
+      className="group rounded-[24px] border border-white/10 bg-white/[0.03] p-4 text-left transition hover:border-white/16 hover:bg-white/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+      onClick={() => onSelect(prompt)}
+      type="button"
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted">
+            {label}
+          </p>
+          <p className="mt-2 text-sm font-semibold text-text">{prompt}</p>
+          <p className="mt-2 text-sm leading-6 text-muted">{description}</p>
+        </div>
+        <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-muted transition group-hover:border-white/20 group-hover:text-text">
+          <ArrowUpRight className="h-4 w-4" />
+        </span>
+      </div>
+    </button>
   );
 }
 
@@ -149,54 +190,81 @@ export function ChatShell() {
   };
 
   return (
-    <Card className="panel flex h-[calc(100vh-2rem)] min-h-[640px] max-h-[820px] flex-col overflow-hidden border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.02))] p-0 sm:h-[calc(100vh-3rem)]">
-      <div className="border-b border-white/10 px-6 py-5">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <p className="font-display text-xl font-semibold text-text">{siteConfig.botName}</p>
-            <p className="mt-1 text-sm leading-6 text-muted">{siteConfig.botStatus}</p>
-          </div>
-          <Badge variant="success">citations on</Badge>
-        </div>
-      </div>
-
-      <div className="border-b border-white/5 px-6 py-4">
-        <div className="flex flex-col gap-2 text-xs uppercase tracking-[0.18em] text-muted sm:flex-row sm:items-center sm:justify-between">
-          <span>Grounded answers from the public knowledge base</span>
-          <span className="inline-flex items-center gap-2 text-emerald-100/80">
-            <span className="h-2 w-2 rounded-full bg-emerald-300" />
-            No account access
-          </span>
-        </div>
-      </div>
-
-      <div className="min-h-0 flex-1 px-4 py-4 sm:px-6 sm:py-5">
-        <div className="h-full min-h-0 overflow-y-auto pr-1 sm:pr-2" ref={scrollRef}>
-          {messages.length === 0 ? (
-            <div className="flex min-h-full flex-col items-center justify-center rounded-[28px] border border-dashed border-white/10 bg-white/[0.02] px-6 py-8 text-center">
-              <div className="inline-flex h-14 w-14 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-sky-100">
-                <ArrowUpRight className="h-5 w-5" />
+    <Card className="workspace-panel flex h-[82svh] min-h-[580px] max-h-[880px] flex-col overflow-hidden border-white/10 p-0 sm:min-h-[640px] lg:h-[840px]">
+      <div className="border-b border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.035),rgba(255,255,255,0.015))] px-4 py-4 sm:px-6 sm:py-5">
+        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+          <div className="min-w-0">
+            <div className="flex items-center gap-3">
+              <span className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-accent">
+                <Bot className="h-4 w-4" />
+              </span>
+              <div>
+                <p className="font-display text-xl font-semibold text-text">{siteConfig.botName}</p>
+                <p className="text-sm leading-6 text-muted">{siteConfig.botStatus}</p>
               </div>
-              <p className="mt-5 font-display text-2xl font-semibold text-text">
-                Ask from the public knowledge base
-              </p>
-              <p className="mt-3 max-w-md text-sm leading-7 text-muted">
-                {siteConfig.chatTrustLine}
-              </p>
-              <div className="mt-6 w-full max-w-lg rounded-[24px] border border-white/10 bg-white/[0.03] p-5 text-left">
-                <div className="flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-muted">
-                  <ShieldCheck className="h-4 w-4 text-emerald-300" />
-                  Common public-doc questions
+            </div>
+          </div>
+          <Badge variant="success">Public docs only</Badge>
+        </div>
+
+        <div className="mt-4 grid gap-2 sm:grid-cols-3">
+          <div className="rounded-[18px] border border-white/10 bg-white/[0.03] px-3 py-2.5 text-sm text-muted">
+            Grounded answers with source citations
+          </div>
+          <div className="rounded-[18px] border border-white/10 bg-white/[0.03] px-3 py-2.5 text-sm text-muted">
+            Escalates billing changes and account-specific work
+          </div>
+          <div className="rounded-[18px] border border-white/10 bg-white/[0.03] px-3 py-2.5 text-sm text-muted">
+            Built to reduce repetitive support questions
+          </div>
+        </div>
+      </div>
+
+      <div className="min-h-0 flex-1 bg-[linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0))] px-3 py-4 sm:px-5 sm:py-5">
+        <div className="h-full min-h-0 overflow-y-auto pr-1" ref={scrollRef}>
+          {messages.length === 0 ? (
+            <div className="flex min-h-full items-center">
+              <div className="mx-auto w-full max-w-3xl rounded-[28px] border border-dashed border-white/10 bg-background/20 px-4 py-8 sm:px-8 sm:py-10">
+                <div className="inline-flex h-12 w-12 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-accent">
+                  <ArrowUpRight className="h-4 w-4" />
                 </div>
-                <div className="mt-4 space-y-3 text-sm leading-7 text-muted">
-                  {siteConfig.emptyStateExamples.map((example) => (
-                    <p key={example}>{example}</p>
+                <p className="mt-6 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted">
+                  New conversation
+                </p>
+                <h2 className="mt-3 font-display text-3xl font-semibold text-text sm:text-4xl">
+                  How can I help with the public support flow?
+                </h2>
+                <p className="mt-4 max-w-2xl text-sm leading-7 text-muted sm:text-[15px]">
+                  {siteConfig.chatTrustLine}
+                </p>
+
+                <div className="mt-8 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                  {siteConfig.suggestedPrompts.map((suggestion) => (
+                    <PromptSuggestion
+                      description={suggestion.description}
+                      key={suggestion.prompt}
+                      label={suggestion.label}
+                      onSelect={(prompt) => {
+                        void submitQuestion(prompt);
+                      }}
+                      prompt={suggestion.prompt}
+                    />
                   ))}
+                </div>
+
+                <div className="mt-8 flex flex-wrap gap-3 text-xs text-muted">
+                  <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-2">
+                    <ShieldCheck className="h-3.5 w-3.5 text-success" />
+                    Grounded answers only when the docs support them
+                  </span>
+                  <span className="inline-flex items-center rounded-full border border-white/10 bg-white/[0.04] px-3 py-2">
+                    Citations stay attached to supported answers
+                  </span>
                 </div>
               </div>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="mx-auto w-full max-w-3xl space-y-5 pb-2">
               {messages.map((message) => (
                 <ChatMessage key={message.id} message={message} />
               ))}
@@ -206,7 +274,7 @@ export function ChatShell() {
         </div>
       </div>
 
-      <div className="shrink-0 border-t border-white/10 bg-[linear-gradient(180deg,rgba(5,12,22,0.55),rgba(5,12,22,0.92))] px-4 py-4 backdrop-blur-xl sm:px-6 sm:py-5">
+      <div className="shrink-0 border-t border-white/10 bg-surface/96 px-3 py-3 sm:px-5 sm:py-4">
         <form
           className="space-y-3"
           onSubmit={(event) => {
@@ -214,37 +282,36 @@ export function ChatShell() {
             void submitQuestion();
           }}
         >
-          <div className="rounded-[28px] border border-white/10 bg-white/[0.03] p-3 shadow-inset">
-            <div className="flex flex-col gap-3 md:flex-row md:items-end">
-              <Textarea
-                className="min-h-[112px] resize-none border-transparent bg-transparent px-2 py-2 text-[15px] leading-6 focus:border-transparent focus:ring-0 md:min-h-[88px] md:flex-1"
-                disabled={isLoading}
-                maxLength={600}
-                onChange={(event) => setInput(event.target.value)}
-                onKeyDown={handleInputKeyDown}
-                placeholder="Ask a question from the public knowledge base"
-                rows={3}
-                value={input}
-              />
-              <Button
-                className="w-full shrink-0 md:min-w-[168px] md:w-auto"
-                disabled={!canSubmit}
-                size="lg"
-                type="submit"
-              >
-                {isLoading ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : null}
-                Send question
-                <SendHorizontal className="ml-2 h-4 w-4" />
-              </Button>
+          <div className="rounded-[26px] border border-white/10 bg-background/35 p-3">
+            <Textarea
+              className="min-h-[104px] resize-none border-transparent bg-transparent px-1 py-1 text-[15px] leading-6 focus:border-transparent focus:ring-0 sm:min-h-[92px]"
+              disabled={isLoading}
+              maxLength={600}
+              onChange={(event) => setInput(event.target.value)}
+              onKeyDown={handleInputKeyDown}
+              placeholder="Ask about plans, invoices, billing policy, cancellation guidance, or support routing"
+              rows={3}
+              value={input}
+            />
+
+            <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-xs leading-5 text-muted">
+                Public docs only. Billing changes, cancellations, refunds, and private-data requests always route to support.
+              </p>
+              <div className="flex items-center justify-between gap-3 sm:justify-end">
+                <span className="text-xs text-muted">{input.length}/600</span>
+                <Button
+                  className="min-w-[132px] sm:min-w-[150px]"
+                  disabled={!canSubmit}
+                  size="lg"
+                  type="submit"
+                >
+                  {isLoading ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : null}
+                  Send
+                  <SendHorizontal className="ml-2 h-4 w-4" />
+                </Button>
+              </div>
             </div>
-          </div>
-          <div className="flex flex-col gap-2 text-xs leading-5 text-muted sm:flex-row sm:items-center sm:justify-between">
-            <p>
-              Public docs only. Billing changes, cancellations, refunds, and private-data requests always route to support.
-            </p>
-            <span className="inline-flex items-center gap-2 text-emerald-100/80">
-              <span>{input.length}/600</span>
-            </span>
           </div>
         </form>
       </div>
