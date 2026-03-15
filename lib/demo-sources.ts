@@ -1,63 +1,14 @@
+import { bundledDemoSources } from "@/lib/demo-kb";
 import type { SourceSet } from "@/types/support-bot";
 
 export const sourceSets: SourceSet[] = [
   {
     key: "demo-local",
-    label: "Repo-local scheduling SaaS docs",
+    label: "Bundled scheduling SaaS docs",
     description:
-      "A curated local knowledge base covering pricing, plans, billing, invoices, cancellations, support, and escalation policy for a fictional scheduling SaaS.",
-    reviewLabel: "Local demo docs",
-    sources: [
-      {
-        kind: "file",
-        label: "Pricing & Plans",
-        title: "Pricing & Plans",
-        url: "internal://demo-kb/pricing",
-        filePath: "demo-kb/pricing.md"
-      },
-      {
-        kind: "file",
-        label: "Plans for Teams",
-        title: "Plans for Teams",
-        url: "internal://demo-kb/plans",
-        filePath: "demo-kb/plans.md"
-      },
-      {
-        kind: "file",
-        label: "Billing & Subscription Changes",
-        title: "Billing & Subscription Changes",
-        url: "internal://demo-kb/billing",
-        filePath: "demo-kb/billing.md"
-      },
-      {
-        kind: "file",
-        label: "Billing & Invoices",
-        title: "Billing & Invoices",
-        url: "internal://demo-kb/invoices",
-        filePath: "demo-kb/invoices.md"
-      },
-      {
-        kind: "file",
-        label: "Cancellation Policy",
-        title: "Cancellation Policy",
-        url: "internal://demo-kb/cancellations",
-        filePath: "demo-kb/cancellations.md"
-      },
-      {
-        kind: "file",
-        label: "Contacting Support",
-        title: "Contacting Support",
-        url: "internal://demo-kb/support",
-        filePath: "demo-kb/support.md"
-      },
-      {
-        kind: "file",
-        label: "Escalation & Support Boundaries",
-        title: "Escalation & Support Boundaries",
-        url: "internal://demo-kb/escalation",
-        filePath: "demo-kb/escalation.md"
-      }
-    ]
+      "A bundled internal knowledge base covering pricing, plans, billing, invoices, cancellations, support, and escalation policy for a fictional scheduling SaaS.",
+    reviewLabel: "Bundled demo docs",
+    sources: bundledDemoSources
   },
   {
     key: "calendly-public-docs",

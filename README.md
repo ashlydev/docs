@@ -80,23 +80,27 @@ External URL ingestion still exists as an optional mode, but it is no longer the
 
 ## Demo knowledge base
 
-The default hosted demo uses repo-local markdown files in `demo-kb/`:
+The default hosted demo uses bundled internal docs defined in `lib/demo-kb.ts`.
 
-- `demo-kb/pricing.md`
-- `demo-kb/plans.md`
-- `demo-kb/billing.md`
-- `demo-kb/invoices.md`
-- `demo-kb/cancellations.md`
-- `demo-kb/support.md`
-- `demo-kb/escalation.md`
+The bundled knowledge base includes:
 
-These documents represent a polished fictional support center for a scheduling SaaS. During ingestion, they are stored with internal source identifiers such as:
+- `pricing`
+- `plans`
+- `billing`
+- `invoices`
+- `cancellations`
+- `support`
+- `escalation`
+
+These documents represent a polished fictional support center for a scheduling SaaS. During ingestion, they are normalized in memory and stored with internal source identifiers such as:
 
 - `internal://demo-kb/pricing`
 - `internal://demo-kb/billing`
 - `internal://demo-kb/support`
 
 Those internal identifiers are preserved in citations so the demo can still show grounded support references without depending on external URLs.
+
+Hosted `demo-local` ingestion no longer reads markdown files from the runtime filesystem. That avoids `ENOENT` failures in Vercel serverless deployments where `demo-kb/*.md` may not be available at runtime.
 
 ## Environment Variables
 
@@ -139,7 +143,7 @@ Notes:
 
 1. `npm run ingest` or `POST /api/ingest` selects a source set.
 2. If no custom URLs are passed, the app ingests the repo-local `demo-local` source set.
-3. Local markdown docs are read from disk, normalized into readable text, chunked, embedded, and stored in Supabase.
+3. Bundled internal docs are normalized in memory, chunked, embedded, and stored in Supabase.
 4. External URL ingestion remains optional and uses the same pipeline when you explicitly pass custom URLs or select the external source set.
 5. Per-source ingestion failures are isolated and returned in the results instead of crashing the whole batch when avoidable.
 
@@ -358,39 +362,33 @@ Verification run date:
 
 Commands run:
 
-- `npm install` - passed
 - `npm run typecheck` - passed
   - `next typegen` generated route types successfully
   - `tsc --noEmit` completed successfully
 - `npm run lint` - passed
 - `npm run build` - passed
-- `npm run start` plus `curl -sS --max-time 10 http://localhost:3000/api/health` - passed and reported accurate degraded status in production mode when `LLM_PROVIDER=ollama`, `OLLAMA_BASE_URL` is local-only, and Supabase is not fully configured
-- `npm run start` plus `curl -sS --max-time 10 -X POST http://localhost:3000/api/chat -H 'Content-Type: application/json' -d '{"question":"How do invoices work?"}'` - passed and returned a valid fallback JSON response from `app/api/chat/route.ts`
+- `curl -sS --max-time 5 http://localhost:11434/api/tags` - passed and confirmed local Ollama models are reachable for local-mode verification
+- `node --import tsx -e "<load demo-local source and call extractReadableContent>"` - passed and returned bundled `internal://demo-kb/pricing` content without any filesystem read
 
 What was fixed:
 
-- kept the restored app structure intact, including `app/api/chat/route.ts`, `app/api/health/route.ts`, `lib/analytics.ts`, UI components, `scripts/smoke-local.ts`, and `tsconfig.json`
-- added Gemini provider support through the official Google GenAI SDK
-- changed the recommended hosted provider from OpenAI to Gemini
-- added repo-local markdown demo docs for the default hosted knowledge base
-- changed default ingestion from live third-party URLs to local demo docs
+- replaced runtime `fs.readFile()` access for `demo-local` ingestion with bundled in-code docs in `lib/demo-kb.ts`
+- changed the default `demo-local` source set from filesystem-backed files to bundled inline documents
+- removed the now-unused demo-local filesystem/path dependency from `lib/content-extractor.ts`
+- preserved the same internal citation URLs such as `internal://demo-kb/pricing` and `internal://demo-kb/support`
 - kept optional external URL ingestion available
 - preserved retrieval, citations, fallback, escalation, and analytics
-- updated the ingest script to load `.env.local` the same way Next does
-- tightened provider health messages so hosted Ollama misconfiguration is reported clearly
-- narrowed the lint script to real source folders so `npm run lint` becomes a reliable project check
-- updated `npm run typecheck` to run `next typegen` before `tsc --noEmit`, so typecheck works from the current project state instead of depending on stale `.next/types`
 
 What still needs manual verification:
 
+- a live hosted redeploy on Vercel using this updated build
+- one real `demo-local` ingestion pass against the hosted environment and your Supabase project
 - live Gemini API calls with a real `GEMINI_API_KEY`
-- real Supabase-backed ingestion after `SUPABASE_URL` is configured
-- hosted runtime verification with `LLM_PROVIDER=gemini`
 - end-to-end grounded answers after the knowledge base is ingested into your actual Supabase project
 
 Final readiness judgment:
 
-Approved for code verification: `npm install`, `npm run typecheck`, `npm run lint`, and `npm run build` all passed in this workspace on March 15, 2026. The architecture supports Ollama locally and Gemini in hosted mode, and the default demo no longer depends on OpenAI billing or live third-party scraping. The remaining blockers are deployment credentials and one real ingestion pass into Supabase.
+Approved for code verification: `npm run typecheck`, `npm run lint`, and `npm run build` all passed in this workspace on March 15, 2026. The default hosted `demo-local` ingestion path no longer depends on runtime markdown files, so the prior Vercel `ENOENT` failure mode is removed from the implementation. A live hosted ingest still needs one post-deploy verification pass with your real environment.
 
 ## Manual Final Checks Before Deploying
 

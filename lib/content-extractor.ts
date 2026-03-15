@@ -1,6 +1,3 @@
-import { readFile } from "node:fs/promises";
-import path from "node:path";
-
 import * as cheerio from "cheerio";
 
 import type { IngestSource } from "@/types/support-bot";
@@ -124,26 +121,30 @@ async function extractReadableUrlContent(url: string) {
   };
 }
 
-async function extractLocalFileContent(source: Extract<IngestSource, { kind: "file" }>) {
-  const absolutePath = path.join(process.cwd(), source.filePath);
-  const markdown = await readFile(absolutePath, "utf8");
-  const text = markdownToText(markdown);
+async function extractInlineContent(source: Extract<IngestSource, { kind: "inline" }>) {
+  const text = markdownToText(source.content);
 
   if (!text) {
-    throw new Error(`No readable content extracted for ${source.filePath}.`);
+    throw new Error(`No readable content extracted for ${source.url}.`);
   }
 
   return {
     sourceUrl: source.url,
-    sourceTitle: source.title ?? getMarkdownTitle(markdown, source.label),
+    sourceDomain: source.sourceDomain,
+    sourceTitle: source.title ?? getMarkdownTitle(source.content, source.label),
     text
   };
 }
 
 export async function extractReadableContent(source: IngestSource) {
-  if (source.kind === "file") {
-    return extractLocalFileContent(source);
+  if (source.kind === "inline") {
+    return extractInlineContent(source);
   }
 
-  return extractReadableUrlContent(source.url);
+  const extracted = await extractReadableUrlContent(source.url);
+
+  return {
+    ...extracted,
+    sourceDomain: new URL(source.url).hostname
+  };
 }

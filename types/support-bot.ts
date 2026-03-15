@@ -89,10 +89,11 @@ export type IngestSource =
       title?: string;
     }
   | {
-      kind: "file";
+      kind: "inline";
       label: string;
       url: string;
-      filePath: string;
+      sourceDomain: string;
+      content: string;
       title?: string;
     };
 

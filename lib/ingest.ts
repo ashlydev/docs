@@ -122,7 +122,7 @@ async function ingestSingleSource(
       {
         source_url: source.url,
         source_title: extracted.sourceTitle,
-        source_domain: new URL(source.url).hostname,
+        source_domain: extracted.sourceDomain,
         content_hash: contentHash,
         status: "ready",
         fetched_at: new Date().toISOString()
