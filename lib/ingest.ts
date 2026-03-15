@@ -48,7 +48,17 @@ export async function ingestPublicSources(
   const results: IngestResult[] = [];
 
   for (const source of sources) {
-    results.push(await ingestSingleSource(source, options));
+    try {
+      results.push(await ingestSingleSource(source, options));
+    } catch (error) {
+      results.push({
+        url: source.url,
+        title: source.title ?? source.label,
+        chunks: 0,
+        status: "failed",
+        error: error instanceof Error ? error.message : "Unknown ingestion error."
+      });
+    }
   }
 
   return results;
@@ -60,7 +70,7 @@ async function ingestSingleSource(
 ): Promise<IngestResult> {
   const supabase = getSupabaseAdmin();
   const embedding = getEmbeddingFingerprint();
-  const extracted = await extractReadableContent(source.url);
+  const extracted = await extractReadableContent(source);
   const contentHash = hashContent(extracted.text);
 
   const { data: existingDocument, error: existingError } = await supabase

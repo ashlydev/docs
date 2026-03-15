@@ -153,7 +153,7 @@ export async function answerSupportQuestion(
   if (isAccountActionRequest(cleanedQuestion)) {
     response = buildFallbackResponse({
       answer:
-        "I can't perform account actions or access private account data from public docs. Please contact human support for help with that request.",
+        "I can't perform account actions or access private account data from the available documentation. Please contact human support for help with that request.",
       answerStatus: "refused",
       category: "account_action",
       fallbackReason: "account_action",

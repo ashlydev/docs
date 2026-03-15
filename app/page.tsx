@@ -32,7 +32,7 @@ export default async function HomePage() {
                 Designed to reduce repetitive support questions
               </h2>
               <p className="mt-4 text-sm leading-7 text-muted">
-                This support flow answers pricing, billing, invoice, and support-route questions from public docs. Supported answers stay grounded in retrieved sources, and anything risky or account-specific moves to human support.
+                This support flow answers pricing, billing, invoice, and support-route questions from curated support docs. Supported answers stay grounded in retrieved sources, and anything risky or account-specific moves to human support.
               </p>
               <div className="mt-8 grid gap-4 md:grid-cols-2">
                 <div className="rounded-[24px] border border-white/10 bg-white/[0.025] p-5">
@@ -68,27 +68,31 @@ export default async function HomePage() {
                 <div>
                   <p className="text-xs uppercase tracking-[0.2em] text-muted">Public knowledge base</p>
                   <h3 className="mt-3 font-display text-2xl font-semibold text-text">
-                    Public pages already mapped into the support flow
+                    Stable support content already mapped into the demo
                   </h3>
                 </div>
-                <a
-                  className={buttonVariants({
-                    variant: "secondary",
-                    size: "sm"
-                  })}
-                  href={sourceSet.supportLink}
-                  rel="noreferrer"
-                  target="_blank"
-                >
-                  Review source set
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </a>
+                {sourceSet.reviewHref ? (
+                  <a
+                    className={buttonVariants({
+                      variant: "secondary",
+                      size: "sm"
+                    })}
+                    href={sourceSet.reviewHref}
+                    rel="noreferrer"
+                    target="_blank"
+                  >
+                    {sourceSet.reviewLabel ?? "Review source set"}
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </a>
+                ) : (
+                  <Badge>{sourceSet.reviewLabel ?? "Repo-local docs"}</Badge>
+                )}
               </div>
               <p className="mt-4 text-sm leading-7 text-muted">
-                {sourceSet.description} Replace these URLs with your own pricing, help center, billing, and contact pages when preparing a pilot rollout.
+                {sourceSet.description} The hosted demo defaults to repo-local docs so ingestion stays stable even when third-party sites throttle or block server-side fetches.
               </p>
               <div className="mt-6 grid gap-3 sm:grid-cols-2">
-                {sourceSet.urls.slice(0, 6).map((item) => (
+                {sourceSet.sources.slice(0, 6).map((item) => (
                   <div
                     className="rounded-2xl border border-white/10 bg-white/[0.025] px-4 py-3"
                     key={item.url}

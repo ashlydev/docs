@@ -49,7 +49,7 @@ export function HeroSection({ sourceSetLabel }: HeroSectionProps) {
             <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
               Public-doc scope
               <p className="mt-1 text-xs text-muted/80">
-                Designed to answer from publicly available help, pricing, and support pages only.
+                Designed to answer from published support content only, whether it lives in curated repo docs or your public help center.
               </p>
             </div>
             <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
@@ -61,7 +61,7 @@ export function HeroSection({ sourceSetLabel }: HeroSectionProps) {
             <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
               Pilot-ready scope
               <p className="mt-1 text-xs text-muted/80">
-                Configured here with {sourceSetLabel.toLowerCase()} so the same flow can be retargeted quickly to your docs.
+                Configured here with {sourceSetLabel.toLowerCase()} so the same flow can be retargeted quickly to your own docs later.
               </p>
             </div>
           </div>

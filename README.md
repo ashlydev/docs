@@ -1,6 +1,6 @@
 # Docs-Based Support Bot for Scheduling SaaS
 
-A focused support-bot pilot for scheduling and booking SaaS companies. The app answers questions from ingested public docs, cites its sources, falls back safely when evidence is weak, escalates risky or account-specific requests, and logs simple analytics.
+A focused support-bot pilot for scheduling and booking SaaS companies. The app answers questions from an ingested knowledge base, cites its sources, falls back safely when evidence is weak, escalates risky or account-specific requests, and logs simple analytics.
 
 ## Who it is for
 
@@ -15,22 +15,22 @@ A focused support-bot pilot for scheduling and booking SaaS companies. The app a
 - Tailwind CSS
 - Supabase Postgres + pgvector for storage and retrieval
 - Ollama for free local development and testing
-- OpenAI for hosted/public deployments
+- Gemini API for hosted/public demos
 
-## What the app does
+## What changed
 
-- Ingests public pricing, help center, billing, and support/contact pages
-- Chunks and embeds those pages into Supabase pgvector
-- Retrieves the most relevant chunks for each question
-- Generates concise answers only from retrieved context
-- Shows linked source citations for supported answers
-- Falls back when retrieval is weak or the answer is not confidently supported
-- Escalates risky or account-specific requests to human support
-- Logs chat outcomes for a simple analytics summary
+This version is intentionally optimized for a cheaper and more stable hosted demo:
+
+- local development mode stays on Ollama
+- hosted production mode is now Gemini API
+- default demo ingestion uses repo-local static docs instead of live third-party scraping
+
+That removes the two major hosted-demo blockers from the earlier plan:
+
+- OpenAI billing and quota dependence
+- unstable third-party doc ingestion paths that can fail on 403s or layout changes
 
 ## Provider Modes
-
-The app supports two provider modes through `LLM_PROVIDER`.
 
 ### Ollama local mode
 
@@ -41,14 +41,14 @@ Use this for free local development and testing.
 - `OLLAMA_CHAT_MODEL=gemma3:1b`
 - `OLLAMA_EMBEDDING_MODEL=embeddinggemma`
 
-### OpenAI hosted mode
+### Gemini hosted mode
 
-Use this for public hosting.
+Use this for hosted/public demos.
 
-- `LLM_PROVIDER=openai`
-- `OPENAI_API_KEY=...`
-- `OPENAI_CHAT_MODEL=gpt-4.1-nano`
-- `OPENAI_EMBEDDING_MODEL=text-embedding-3-small`
+- `LLM_PROVIDER=gemini`
+- `GEMINI_API_KEY=...`
+- `GEMINI_CHAT_MODEL=gemini-2.5-flash-lite`
+- `GEMINI_EMBEDDING_MODEL=gemini-embedding-001`
 
 ## Recommended Setup
 
@@ -61,9 +61,42 @@ Use this for public hosting.
 
 ### Public hosted demo
 
-- `LLM_PROVIDER=openai`
-- `OPENAI_CHAT_MODEL=gpt-4.1-nano`
-- `OPENAI_EMBEDDING_MODEL=text-embedding-3-small`
+- `LLM_PROVIDER=gemini`
+- `GEMINI_CHAT_MODEL=gemini-2.5-flash-lite`
+- `GEMINI_EMBEDDING_MODEL=gemini-embedding-001`
+
+## Why the hosted demo uses local static docs by default
+
+The hosted demo no longer depends on scraping Calendly or other third-party help centers by default.
+
+Reasons:
+
+- third-party sites can block server-side fetches
+- public pages can change layout without notice
+- hosted demos need a stable and controllable knowledge base
+- local docs make citations, support boundaries, and fallback behavior easier to verify
+
+External URL ingestion still exists as an optional mode, but it is no longer the default hosted path.
+
+## Demo knowledge base
+
+The default hosted demo uses repo-local markdown files in `demo-kb/`:
+
+- `demo-kb/pricing.md`
+- `demo-kb/plans.md`
+- `demo-kb/billing.md`
+- `demo-kb/invoices.md`
+- `demo-kb/cancellations.md`
+- `demo-kb/support.md`
+- `demo-kb/escalation.md`
+
+These documents represent a polished fictional support center for a scheduling SaaS. During ingestion, they are stored with internal source identifiers such as:
+
+- `internal://demo-kb/pricing`
+- `internal://demo-kb/billing`
+- `internal://demo-kb/support`
+
+Those internal identifiers are preserved in citations so the demo can still show grounded support references without depending on external URLs.
 
 ## Environment Variables
 
@@ -71,7 +104,7 @@ Copy `./.env.example` to `.env.local` and configure:
 
 ### General
 
-- `LLM_PROVIDER=ollama|openai`
+- `LLM_PROVIDER=ollama|gemini`
 - `NEXT_PUBLIC_APP_URL`
 - `SUPPORT_LINK`
 - `NEXT_PUBLIC_SUPPORT_LINK`
@@ -89,62 +122,77 @@ Copy `./.env.example` to `.env.local` and configure:
 - `OLLAMA_CHAT_MODEL`
 - `OLLAMA_EMBEDDING_MODEL`
 
-### OpenAI
+### Gemini
 
-- `OPENAI_API_KEY`
-- `OPENAI_CHAT_MODEL`
-- `OPENAI_EMBEDDING_MODEL`
+- `GEMINI_API_KEY`
+- `GEMINI_CHAT_MODEL`
+- `GEMINI_EMBEDDING_MODEL`
 
 Notes:
 
-- OpenAI variables are not required when `LLM_PROVIDER=ollama`.
-- Ollama variables are not required when `LLM_PROVIDER=openai`.
-- Keep `SUPPORT_LINK` and `NEXT_PUBLIC_SUPPORT_LINK` aligned so server responses and client UI use the same handoff target.
+- Gemini variables are not required when `LLM_PROVIDER=ollama`.
+- Ollama variables are not required when `LLM_PROVIDER=gemini`.
 - Hosted deployments must not leave `OLLAMA_BASE_URL` pointed at `localhost` or another loopback-only address.
+- Secrets stay server-only. Do not expose `GEMINI_API_KEY` or `SUPABASE_SERVICE_ROLE_KEY` in client bundles.
 
-## Ollama Requirements
+## How ingestion works
 
-If you are using local mode, install the required models and run Ollama:
+1. `npm run ingest` or `POST /api/ingest` selects a source set.
+2. If no custom URLs are passed, the app ingests the repo-local `demo-local` source set.
+3. Local markdown docs are read from disk, normalized into readable text, chunked, embedded, and stored in Supabase.
+4. External URL ingestion remains optional and uses the same pipeline when you explicitly pass custom URLs or select the external source set.
+5. Per-source ingestion failures are isolated and returned in the results instead of crashing the whole batch when avoidable.
+
+### Default local demo ingestion
 
 ```bash
-ollama pull gemma3:1b
-ollama pull embeddinggemma
-ollama serve
+npm run ingest
 ```
 
-Default local Ollama base URL:
+### Force re-ingestion of local demo docs
 
-```text
-http://localhost:11434
+```bash
+npm run ingest -- --force
 ```
 
-## How Ingestion Works
+### Select the default demo source set explicitly
 
-1. `scripts/seed-demo.ts` or `POST /api/ingest` takes a list of public URLs.
-2. The ingestion pipeline fetches each page, strips obvious layout noise, and extracts readable text.
-3. The text is chunked into overlapping sections.
-4. Each chunk is embedded through the active provider.
-5. Chunks are stored in `document_chunks` with source metadata and vector embeddings.
+```bash
+npm run ingest -- --source-set demo-local --force
+```
 
-Starter source sets live in `lib/demo-sources.ts` so you can swap the pilot company later without changing the rest of the app.
+### Optional external URL ingestion
 
-## How Retrieval Works
+```bash
+npm run ingest -- --source-set calendly-public-docs --force
+```
+
+### Optional API ingestion request
+
+```bash
+curl -X POST http://localhost:3000/api/ingest \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $INGESTION_SECRET" \
+  -d '{"sourceSet":"demo-local","force":true}'
+```
+
+## How retrieval works
 
 1. The question is embedded with the active embedding provider.
 2. Supabase RPC `match_document_chunks` performs pgvector cosine similarity search.
-3. Retrieval is filtered to chunks embedded by the currently configured provider/model.
+3. Retrieval is filtered to chunks embedded by the currently configured provider and embedding model.
 4. The app scores retrieval strength with a lightweight heuristic.
 5. If the evidence is strong enough, the retrieved chunks are passed to the chat model for a grounded answer with citations.
 
-## How Fallback Works
+## How fallback works
 
 Fallback triggers when:
 
-- Retrieval is too weak
-- The active model cannot produce a well-supported answer with citations
-- The user asks for an account action such as cancellation, refunds, or billing changes on their behalf
-- The question falls outside ingested documentation
-- The configured provider is unavailable
+- retrieval is too weak
+- the active model cannot produce a well-supported answer with citations
+- the user asks for an account action such as cancellation, refunds, or billing changes on their behalf
+- the question falls outside ingested documentation
+- the configured provider is unavailable or misconfigured
 
 The bot never claims to:
 
@@ -154,15 +202,26 @@ The bot never claims to:
 - process refunds
 - read private customer data
 
-## Important Re-ingestion Note
+## How citations work now
 
-When you change embedding providers or embedding models, re-ingest the docs before testing the bot.
+Supported answers still include citations. For the default hosted demo, those citations point to the repo-local demo knowledge base, for example:
+
+- `Pricing & Plans`
+- `Plans for Teams`
+- `Billing & Invoices`
+- `Contacting Support`
+
+The citation URL is an internal source reference like `internal://demo-kb/pricing`.
+
+## Re-ingestion when providers change
+
+When you change embedding providers or embedding models, re-ingest the knowledge base before testing again.
 
 Why:
 
-- Ollama and OpenAI embeddings should not be mixed in the same active retrieval flow.
+- Ollama and Gemini embeddings should not be mixed in the same active retrieval flow.
 - The app records the embedding provider and model in chunk metadata and only retrieves from matching vectors.
-- If you switch from Ollama to OpenAI, or change embedding models within either provider, old chunks will not match the new embedding configuration safely.
+- If you switch providers or switch embedding models, old chunks will not match the new embedding configuration safely.
 
 Recommended command after any embedding change:
 
@@ -170,74 +229,9 @@ Recommended command after any embedding change:
 npm run ingest -- --force
 ```
 
-## Local Setup
-
-1. Install dependencies:
-
-```bash
-npm install
-```
-
-2. Copy env vars:
-
-```bash
-cp .env.example .env.local
-```
-
-3. Create a Supabase project, then use the migration workflow below to link this repo and push the baseline schema.
-
-4. Pick your provider mode:
-
-For Ollama local mode:
-
-```bash
-ollama pull gemma3:1b
-ollama pull embeddinggemma
-ollama serve
-```
-
-For OpenAI local verification:
-
-- Set `LLM_PROVIDER=openai`
-- Set `OPENAI_API_KEY`
-
-5. Seed the docs:
-
-```bash
-npm run ingest
-```
-
-Optional reseed commands:
-
-```bash
-npm run ingest -- --force
-npm run ingest -- --url https://example.com/pricing --url https://example.com/help
-```
-
-6. Start the app:
-
-```bash
-npm run dev
-```
-
-Optional verification helpers:
-
-```bash
-npm run typecheck
-npm run lint
-npm run build
-npm run smoke
-```
-
-If your app is not running on port `3000`, point the smoke script at the correct URL:
-
-```bash
-APP_BASE_URL=http://localhost:3001 npm run smoke
-```
-
 ## Supabase Migrations
 
-This repo now includes Supabase CLI project files plus a baseline migration created from `supabase/schema.sql`.
+This repo includes Supabase CLI project files plus a baseline migration created from `supabase/schema.sql`.
 
 - `supabase/config.toml`
 - `supabase/migrations/20260315081147_initial_schema.sql`
@@ -259,7 +253,7 @@ npx supabase login
 npx supabase link --project-ref your-project-ref
 ```
 
-`supabase link` will prompt for the database password of the remote project.
+`supabase link` will prompt for the remote database password.
 
 ### Check migration state
 
@@ -267,11 +261,9 @@ npx supabase link --project-ref your-project-ref
 npx supabase migration list
 ```
 
-Run this after linking so you can compare local migrations with the remote migration history.
-
 ### Push migrations to the remote database
 
-For a fresh remote project, review the plan first:
+Review what will be applied first:
 
 ```bash
 npx supabase db push --dry-run
@@ -286,173 +278,140 @@ npx supabase db push
 Production-safe note:
 
 - If the remote database already contains tables created manually in the SQL editor, do not push the baseline migration blindly.
-- In that case, reconcile the remote state first before applying new migrations.
+- Reconcile the remote schema first before applying new migrations.
 
-### What you still need to do in the Supabase dashboard
+## Local Setup
 
-- Create the Supabase project if you have not created it yet.
-- Save the database password you choose during project creation because the CLI will ask for it when linking or pushing.
-- Copy the project ref from the project URL or project settings so you can run `npx supabase link --project-ref your-project-ref`.
-- Copy the project API URL into `SUPABASE_URL` in `.env.local`.
-- Copy the service role key into `SUPABASE_SERVICE_ROLE_KEY` in `.env.local`.
-- If you already ran `supabase/schema.sql` manually in the remote SQL editor, stop before `db push` and reconcile that database first instead of applying the baseline migration a second time.
-- You do not need to enable `vector` or `pgcrypto` manually in the dashboard because the migration creates those extensions.
+1. Install dependencies:
 
-## Production Hosting
+```bash
+npm install
+```
 
-For public hosting, the recommended mode is OpenAI.
+2. Copy env vars:
 
-### Vercel or similar hosting with OpenAI
+```bash
+cp .env.example .env.local
+```
 
-1. Set `LLM_PROVIDER=openai`
-2. Set `OPENAI_API_KEY`
-3. Set `OPENAI_CHAT_MODEL=gpt-4.1-nano`
-4. Set `OPENAI_EMBEDDING_MODEL=text-embedding-3-small`
-5. Set `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`
-6. Set your public support and teardown links
-7. Deploy the Next.js app
-8. Run ingestion locally or call the protected `/api/ingest` route after deploy
+3. Fill in:
 
-### Hosted Ollama mode
+- `SUPABASE_URL`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `INGESTION_SECRET`
 
-This is supported, but only if `OLLAMA_BASE_URL` points to a reachable Ollama host.
+4. Choose local Ollama mode:
 
-1. Host Ollama on a reachable VM, container, or private network service
-2. Pull `gemma3:1b` and `embeddinggemma` on that Ollama host
-3. Set `LLM_PROVIDER=ollama`
-4. Set `OLLAMA_BASE_URL` to the reachable Ollama URL
-5. Set Supabase env vars
-6. Deploy the app
+```bash
+OLLAMA_BASE_URL=http://localhost:11434
+OLLAMA_CHAT_MODEL=gemma3:1b
+OLLAMA_EMBEDDING_MODEL=embeddinggemma
+```
+
+5. Pull and start Ollama models:
+
+```bash
+ollama pull gemma3:1b
+ollama pull embeddinggemma
+ollama serve
+```
+
+6. Ingest the local demo docs:
+
+```bash
+npm run ingest
+```
+
+7. Start the app:
+
+```bash
+npm run dev
+```
+
+## Hosted Deployment Steps
+
+For public hosting, the recommended mode is Gemini.
+
+1. Set `LLM_PROVIDER=gemini`
+2. Set `GEMINI_API_KEY`
+3. Set `GEMINI_CHAT_MODEL=gemini-2.5-flash-lite`
+4. Set `GEMINI_EMBEDDING_MODEL=gemini-embedding-001`
+5. Set `SUPABASE_URL`
+6. Set `SUPABASE_SERVICE_ROLE_KEY`
+7. Set `INGESTION_SECRET`
+8. Set your public support and teardown links
+9. Deploy the Next.js app
+10. Run the default `demo-local` ingestion after deploy
 
 Hosted deployment notes:
 
-- Vercel env vars are managed in the Vercel project settings or via the Vercel CLI, not in the repository.
-- After changing env vars in Vercel, redeploy so the runtime picks them up.
-- Use `GET /api/health` after deploy to confirm provider status and Supabase status.
-- A hosted deployment is not ready if `LLM_PROVIDER=ollama` and `OLLAMA_BASE_URL` still points to `localhost`, `127.0.0.1`, or another loopback-only host.
-
-Example ingestion request:
-
-```bash
-curl -X POST http://localhost:3000/api/ingest \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer $INGESTION_SECRET" \
-  -d '{"sourceSetKey":"calendly-public-docs","force":true}'
-```
-
-## What to Customize Before Showing Prospects
-
-- Replace the source set in `lib/demo-sources.ts`
-- Update positioning and CTA copy in `lib/site-config.ts`
-- Change support handoff links in `.env.local`
-- Tune retrieval thresholds in `lib/retrieval.ts`
-- Adjust answer instructions in `lib/prompts.ts`
-- Re-seed the knowledge base with the public docs you want prospects to see
-
-## Notes on pgvector Dimensions
-
-This version uses an unbounded `vector` column in `supabase/schema.sql` so different embedding models can be swapped without hardcoding a single dimension. If you later standardize on one embedding size and need a larger indexed corpus, add an approximate index for that fixed dimension.
-
-## Important Scope Boundaries
-
-- Public docs only
-- No auth
-- No billing mutations
-- No account actions
-- No multi-tenancy
-- No private account access
-
-This is a focused pilot asset for selling a docs-based support bot engagement, not a full support platform.
+- The hosted path no longer requires OpenAI billing.
+- The hosted path no longer depends on third-party doc scraping by default.
+- If `LLM_PROVIDER=ollama` in a hosted deployment, `OLLAMA_BASE_URL` must point to a reachable non-local host.
+- `GET /api/health` should report `provider="gemini"` and a ready knowledge base after successful ingestion.
 
 ## Verification Results
 
+Verification run date:
+
+- March 15, 2026
+
 Commands run:
 
-- `npm install openai` - passed
+- `npm install` - passed
 - `npm run typecheck` - passed
+  - `next typegen` generated route types successfully
+  - `tsc --noEmit` completed successfully
 - `npm run lint` - passed
 - `npm run build` - passed
-- `npm run smoke` - failed in this sandbox because Node could not connect to the local app server at `127.0.0.1:3000` (`EPERM`); rerun against a live local server with `APP_BASE_URL=http://localhost:3000 npm run smoke` or your actual port
-- `npm run ingest` - failed in this workspace because `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are not configured
-- `curl -sS --max-time 5 http://localhost:11434/api/tags` - passed and confirmed local Ollama is up with `gemma3:1b` and `embeddinggemma`
-- Direct backend provider smoke checks through `node --import tsx` - passed for provider-aware fallback and unsafe-request refusal behavior
+- `npm run start` plus `curl -sS --max-time 10 http://localhost:3000/api/health` - passed and reported accurate degraded status in production mode when `LLM_PROVIDER=ollama`, `OLLAMA_BASE_URL` is local-only, and Supabase is not fully configured
+- `npm run start` plus `curl -sS --max-time 10 -X POST http://localhost:3000/api/chat -H 'Content-Type: application/json' -d '{"question":"How do invoices work?"}'` - passed and returned a valid fallback JSON response from `app/api/chat/route.ts`
 
 What was fixed:
 
-- Added a clean provider abstraction for Ollama and OpenAI
-- Added OpenAI chat generation and embedding support
-- Made env parsing strict but provider-aware
-- Updated ingestion and retrieval to use the active provider
-- Stored embedding provider/model metadata on chunks and filtered retrieval to matching vectors
-- Fixed re-ingestion behavior so unchanged docs are still re-embedded after provider/model switches
-- Kept fallback, escalation, citations, and analytics flows intact
-- Preserved the chat composer and buyer-facing UI structure
-
-What was verified successfully:
-
-- The app now supports both `LLM_PROVIDER=ollama` and `LLM_PROVIDER=openai`
-- TypeScript, lint, and production build all pass
-- OpenAI mode does not require Ollama configuration
-- Ollama mode does not require OpenAI configuration
-- Unsafe prompts still return `refused` with escalation in both modes
-- Missing provider configuration now returns a clean provider-aware fallback instead of a crash
-- Local Ollama models are present in this environment
+- kept the restored app structure intact, including `app/api/chat/route.ts`, `app/api/health/route.ts`, `lib/analytics.ts`, UI components, `scripts/smoke-local.ts`, and `tsconfig.json`
+- added Gemini provider support through the official Google GenAI SDK
+- changed the recommended hosted provider from OpenAI to Gemini
+- added repo-local markdown demo docs for the default hosted knowledge base
+- changed default ingestion from live third-party URLs to local demo docs
+- kept optional external URL ingestion available
+- preserved retrieval, citations, fallback, escalation, and analytics
+- updated the ingest script to load `.env.local` the same way Next does
+- tightened provider health messages so hosted Ollama misconfiguration is reported clearly
+- narrowed the lint script to real source folders so `npm run lint` becomes a reliable project check
+- updated `npm run typecheck` to run `next typegen` before `tsc --noEmit`, so typecheck works from the current project state instead of depending on stale `.next/types`
 
 What still needs manual verification:
 
-- Grounded answers with citations after Supabase is configured and docs are ingested
-- End-to-end ingestion into Supabase in both provider modes
-- Full `npm run smoke` execution against a running local or hosted app URL
-- Hosted OpenAI mode with real credentials
-- Hosted Ollama mode with a reachable non-local `OLLAMA_BASE_URL`
-- Final visual QA on mobile and desktop
-
-Whether Ollama local mode was verified:
-
-- Partially verified
-
-Details:
-
-- Ollama models were confirmed via `curl`
-- The Ollama code path builds and reports provider-specific health state
-- Full Ollama end-to-end answering was blocked here because this workspace has no Supabase config and sandboxed Node fetch could not reach local Ollama even though `curl` could
-
-Whether OpenAI hosted mode was verified:
-
-- Partially verified
-
-Details:
-
-- The OpenAI provider compiles and is fully wired into the runtime
-- OpenAI mode reports clean configuration status and provider-aware fallback behavior
-- Live OpenAI API calls were not verified here because no `OPENAI_API_KEY` was configured in this workspace
-
-External blockers encountered here:
-
-- This workspace does not have `.env.local`, so Supabase-backed ingestion and grounded retrieval could not be completed
-- Live OpenAI verification was blocked by missing credentials
-- `npm run smoke` could not reach a local app server from Node fetch in this sandbox (`EPERM 127.0.0.1:3000`)
-- Sandboxed Node networking blocked local Ollama fetches from the app code path even though direct `curl` to Ollama succeeded
+- live Gemini API calls with a real `GEMINI_API_KEY`
+- real Supabase-backed ingestion after `SUPABASE_URL` is configured
+- hosted runtime verification with `LLM_PROVIDER=gemini`
+- end-to-end grounded answers after the knowledge base is ingested into your actual Supabase project
 
 Final readiness judgment:
 
-- `Host-near`
-
-Reason:
-
-- The provider split is in place, build-clean, and deployment-guided, but it is not honestly `Host-ready` until Supabase is configured, docs are ingested with the intended embedding provider, and hosted OpenAI mode is verified with real credentials in a real deployment environment.
+Approved for code verification: `npm install`, `npm run typecheck`, `npm run lint`, and `npm run build` all passed in this workspace on March 15, 2026. The architecture supports Ollama locally and Gemini in hosted mode, and the default demo no longer depends on OpenAI billing or live third-party scraping. The remaining blockers are deployment credentials and one real ingestion pass into Supabase.
 
 ## Manual Final Checks Before Deploying
 
-- Verify env vars for the intended provider mode
-- Verify `LLM_PROVIDER` is set correctly
-- If using Ollama in production, verify `OLLAMA_BASE_URL` is reachable and not local-only
-- If using OpenAI, verify `OPENAI_API_KEY` is set
-- Run ingestion after choosing the final embedding provider
-- Test supported questions about pricing, billing, support contact, and plan fit
-- Test unsafe questions about refunds, cancellations, billing changes, and account access
-- Verify grounded answers include citations
-- Verify weak or unsupported questions fall back cleanly
-- Verify escalation links point to the correct support destination
-- Verify CTA links before outreach
-- Verify the mobile chat composer and send button
+- verify `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `INGESTION_SECRET`, and `GEMINI_API_KEY`
+- set `LLM_PROVIDER=gemini` in the hosted environment
+- run `npm run ingest -- --source-set demo-local --force`
+- test supported questions about pricing, billing, invoices, plans, and support contact
+- test unsafe questions about cancellations, refunds, billing changes, and account access
+- verify that supported answers include citations from the local demo docs
+- verify that unsupported or risky prompts fall back cleanly
+- verify that escalation still routes to your support CTA
+- verify the review and teardown CTA links
+- verify the mobile chat composer and message layout
+
+## Scope boundaries
+
+- public knowledge only
+- no auth
+- no billing mutations
+- no account actions
+- no multi-tenancy
+- no private account access
+
+This is a focused pilot asset for selling a docs-based support bot engagement, not a full support platform.

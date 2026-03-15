@@ -1,3 +1,4 @@
+import "./load-env";
 import { getSourceSetByKey } from "../lib/demo-sources";
 import { getLlmConfigIssues, hasLlmConfig, hasSupabaseConfig } from "../lib/env";
 import { ingestPublicSources } from "../lib/ingest";
@@ -76,10 +77,10 @@ async function main() {
 
   const args = parseArgs(process.argv.slice(2));
   const sourceSet = getSourceSetByKey(args.sourceSetKey);
-  const sources = args.urls.length > 0 ? toCustomSources(args.urls) : sourceSet.urls;
+  const sources = args.urls.length > 0 ? toCustomSources(args.urls) : sourceSet.sources;
 
   console.log(
-    `Ingesting ${sources.length} public URLs from ${args.urls.length > 0 ? "custom input" : sourceSet.label}...`
+    `Ingesting ${sources.length} sources from ${args.urls.length > 0 ? "custom input" : sourceSet.label}...`
   );
 
   const results = await ingestPublicSources(sources, {
@@ -91,9 +92,14 @@ async function main() {
       status: result.status,
       chunks: result.chunks,
       title: result.title,
-      url: result.url
+      url: result.url,
+      error: result.error ?? ""
     }))
   );
+
+  if (results.some((result) => result.status === "failed")) {
+    process.exitCode = 1;
+  }
 }
 
 main().catch((error) => {

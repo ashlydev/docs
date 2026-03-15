@@ -4,7 +4,13 @@ import {
   groundedAnswerSchema,
   groundedSupportSystemPrompt
 } from "@/lib/prompts";
-import { env, hasLlmConfig, isHostedOllamaUrlReady, isLocalUrl } from "@/lib/env";
+import {
+  env,
+  getLlmConfigIssues,
+  hasLlmConfig,
+  isHostedOllamaUrlReady,
+  isLocalUrl
+} from "@/lib/env";
 import type { GroundedAnswerResult } from "@/lib/prompts";
 import {
   AiProviderConfigurationError,
@@ -154,7 +160,10 @@ export const ollamaProvider: AiProviderAdapter = {
         chatModelAvailable: false,
         embeddingModel: env.OLLAMA_EMBEDDING_MODEL,
         embeddingModelAvailable: false,
-        issues: ["Missing Ollama configuration."]
+        issues:
+          env.LLM_PROVIDER === "ollama"
+            ? getLlmConfigIssues()
+            : ["LLM_PROVIDER is not set to ollama."]
       };
     }
 

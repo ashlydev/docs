@@ -6,8 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint .",
-    "typecheck": "tsc --noEmit",
+    "lint": "eslint app lib components scripts types --ext .ts,.tsx --no-error-on-unmatched-pattern",
+    "typecheck": "next typegen && tsc --noEmit",
     "verify": "npm run typecheck && npm run lint && npm run build",
     "ingest": "node --import tsx scripts/seed-demo.ts",
     "smoke": "node --import tsx scripts/smoke-local.ts"
@@ -16,6 +16,7 @@
     "node": ">=20.0.0"
   },
   "dependencies": {
+    "@google/genai": "^1.45.0",
     "@supabase/supabase-js": "^2.50.0",
     "cheerio": "^1.0.0",
     "class-variance-authority": "^0.7.1",

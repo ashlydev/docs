@@ -8,7 +8,7 @@ const publicTeardownLink =
 export const siteConfig = {
   name: "Docs-Based Support Bot for Scheduling SaaS",
   subtitle:
-    "Grounded answers from public help docs with source citations and human escalation for pricing, billing, and support questions.",
+    "Grounded answers from curated support docs with source citations and human escalation for pricing, billing, and support questions.",
   heroEyebrow: "Fixed-scope pilot for scheduling SaaS",
   botName: "Support Knowledge Assistant",
   botStatus: "Public-doc answers with citations, fallback, and human escalation",
@@ -29,7 +29,7 @@ export const siteConfig = {
     {
       title: "Grounded answers from docs",
       description:
-        "Answer repetitive pricing, billing, and support questions from your public documentation instead of forcing visitors into support queues."
+        "Answer repetitive pricing, billing, and support questions from a controlled knowledge base instead of forcing visitors into support queues."
     },
     {
       title: "Source-backed citations",
@@ -54,9 +54,9 @@ export const siteConfig = {
   ],
   howItWorksSteps: [
     {
-      title: "Ingest public docs",
+      title: "Ingest stable support docs",
       description:
-        "Pull pricing, help center, billing, and support pages into a searchable public knowledge base."
+        "Load curated local demo docs or your own public support pages into a searchable support knowledge base."
     },
     {
       title: "Retrieve relevant sources",
@@ -76,7 +76,7 @@ export const siteConfig = {
   ],
   footerEyebrow: "Fixed-scope pilot",
   footerHeadline:
-    "Launch a docs-based support bot pilot grounded in your public help center and pricing docs.",
+    "Launch a docs-based support bot pilot grounded in stable support docs, citations, and clear human escalation.",
   footerCtaLabel: "Request a pilot"
 };
 

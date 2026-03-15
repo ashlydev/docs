@@ -28,7 +28,7 @@ function parseWithDefault<T>(key: string, schema: z.ZodType<T>, fallback: T) {
 
 const requestedProvider = parseOptional(
   "LLM_PROVIDER",
-  z.enum(["ollama", "openai"])
+  z.enum(["ollama", "gemini", "openai"])
 ) as SupportedLlmProvider | undefined;
 
 export const env = {
@@ -64,6 +64,17 @@ export const env = {
     "OLLAMA_EMBEDDING_MODEL",
     z.string().min(1),
     "embeddinggemma"
+  ),
+  GEMINI_API_KEY: parseOptional("GEMINI_API_KEY", z.string().min(1)),
+  GEMINI_CHAT_MODEL: parseWithDefault(
+    "GEMINI_CHAT_MODEL",
+    z.string().min(1),
+    "gemini-2.5-flash-lite"
+  ),
+  GEMINI_EMBEDDING_MODEL: parseWithDefault(
+    "GEMINI_EMBEDDING_MODEL",
+    z.string().min(1),
+    "gemini-embedding-001"
   ),
   OPENAI_API_KEY: parseOptional("OPENAI_API_KEY", z.string().min(1)),
   OPENAI_CHAT_MODEL: parseWithDefault(
@@ -114,6 +125,15 @@ export function isHostedOllamaUrlReady() {
 }
 
 export function getProviderDescriptorFromEnv() {
+  if (env.LLM_PROVIDER === "gemini") {
+    return {
+      provider: "gemini" as const,
+      label: "Gemini API",
+      chatModel: env.GEMINI_CHAT_MODEL,
+      embeddingModel: env.GEMINI_EMBEDDING_MODEL
+    };
+  }
+
   if (env.LLM_PROVIDER === "openai") {
     return {
       provider: "openai" as const,
@@ -143,6 +163,23 @@ export function getEmbeddingDescriptorFromEnv() {
 
 export function getLlmConfigIssues() {
   switch (env.LLM_PROVIDER) {
+    case "gemini": {
+      const issues: string[] = [];
+
+      if (!env.GEMINI_API_KEY) {
+        issues.push("GEMINI_API_KEY is missing.");
+      }
+
+      if (!env.GEMINI_CHAT_MODEL) {
+        issues.push("GEMINI_CHAT_MODEL is missing.");
+      }
+
+      if (!env.GEMINI_EMBEDDING_MODEL) {
+        issues.push("GEMINI_EMBEDDING_MODEL is missing.");
+      }
+
+      return issues;
+    }
     case "openai": {
       const issues: string[] = [];
 
@@ -201,14 +238,22 @@ export function hasBackendConfig() {
 }
 
 export function getProviderConfigMessage() {
-  if (env.LLM_PROVIDER === "openai") {
-    return "This support bot needs a configured knowledge base and valid OpenAI credentials before it can answer from public docs.";
+  if (env.LLM_PROVIDER === "gemini") {
+    return "This support bot needs a configured knowledge base and valid Gemini API credentials before it can answer from the available docs.";
   }
 
-  return "This support bot needs a configured knowledge base and a reachable Ollama endpoint before it can answer from public docs.";
+  if (env.LLM_PROVIDER === "openai") {
+    return "This support bot needs a configured knowledge base and valid OpenAI credentials before it can answer from the available docs.";
+  }
+
+  return "This support bot needs a configured knowledge base and a reachable Ollama endpoint before it can answer from the available docs.";
 }
 
 export function getProviderUnavailableMessage() {
+  if (env.LLM_PROVIDER === "gemini") {
+    return "The configured Gemini API service is unavailable right now. Please contact human support.";
+  }
+
   if (env.LLM_PROVIDER === "openai") {
     return "The configured OpenAI service is unavailable right now. Please contact human support.";
   }

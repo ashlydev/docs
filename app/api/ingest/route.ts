@@ -13,6 +13,7 @@ import { ingestPublicSources } from "@/lib/ingest";
 export const runtime = "nodejs";
 
 const requestSchema = z.object({
+  sourceSet: z.string().optional(),
   sourceSetKey: z.string().optional(),
   urls: z
     .array(
@@ -84,9 +85,9 @@ export async function POST(request: Request) {
     }
 
     const body = requestSchema.parse(await request.json().catch(() => ({})));
-    const sourceSet = getSourceSetByKey(body.sourceSetKey);
-    const urls = body.urls ?? sourceSet.urls;
-    const results = await ingestPublicSources(urls, {
+    const sourceSet = getSourceSetByKey(body.sourceSet ?? body.sourceSetKey);
+    const sources = body.urls ?? sourceSet.sources;
+    const results = await ingestPublicSources(sources, {
       force: body.force
     });
 
@@ -110,7 +111,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json(
       {
-        error: "Failed to ingest public docs."
+        error: "Failed to ingest support docs."
       },
       {
         status: 500

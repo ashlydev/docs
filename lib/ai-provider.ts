@@ -1,4 +1,5 @@
 import { env } from "@/lib/env";
+import { geminiProvider } from "@/lib/providers/gemini";
 import { ollamaProvider } from "@/lib/providers/ollama";
 import { openAIProvider } from "@/lib/providers/openai";
 import {
@@ -14,6 +15,8 @@ function resolveProvider() {
   switch (env.LLM_PROVIDER) {
     case "ollama":
       return ollamaProvider;
+    case "gemini":
+      return geminiProvider;
     case "openai":
       return openAIProvider;
     default:

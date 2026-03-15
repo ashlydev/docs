@@ -81,22 +81,34 @@ export type AnalyticsSummary = {
   mode: "live" | "demo";
 };
 
-export type IngestSource = {
-  label: string;
-  url: string;
-};
+export type IngestSource =
+  | {
+      kind?: "url";
+      label: string;
+      url: string;
+      title?: string;
+    }
+  | {
+      kind: "file";
+      label: string;
+      url: string;
+      filePath: string;
+      title?: string;
+    };
 
 export type SourceSet = {
   key: string;
   label: string;
   description: string;
-  supportLink: string;
-  urls: IngestSource[];
+  reviewHref?: string;
+  reviewLabel?: string;
+  sources: IngestSource[];
 };
 
 export type IngestResult = {
   url: string;
   title: string;
   chunks: number;
-  status: "ingested" | "skipped";
+  status: "ingested" | "skipped" | "failed";
+  error?: string;
 };

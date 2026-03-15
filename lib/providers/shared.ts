@@ -1,7 +1,7 @@
 import type { GroundedAnswerResult } from "@/lib/prompts";
 import type { RetrievalAssessment } from "@/types/support-bot";
 
-export type SupportedLlmProvider = "ollama" | "openai";
+export type SupportedLlmProvider = "ollama" | "gemini" | "openai";
 
 export type GenerateStructuredAnswerArgs = {
   question: string;

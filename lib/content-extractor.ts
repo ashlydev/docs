@@ -1,4 +1,9 @@
+import { readFile } from "node:fs/promises";
+import path from "node:path";
+
 import * as cheerio from "cheerio";
+
+import type { IngestSource } from "@/types/support-bot";
 
 const BLOCK_SELECTORS = "h1, h2, h3, h4, p, li";
 const NOISE_SELECTORS = [
@@ -26,6 +31,7 @@ const NOISE_SELECTORS = [
 
 function normalizeText(input: string) {
   return input
+    .replace(/\r\n/g, "\n")
     .replace(/\u00a0/g, " ")
     .replace(/[ \t]+\n/g, "\n")
     .replace(/[ \t]{2,}/g, " ")
@@ -56,7 +62,28 @@ function getTitle($: cheerio.CheerioAPI, fallbackUrl: string) {
   );
 }
 
-export async function extractReadableContent(url: string) {
+function markdownToText(markdown: string) {
+  return normalizeText(
+    markdown
+      .replace(/^---[\s\S]*?---\n+/m, "")
+      .replace(/```[\s\S]*?```/g, " ")
+      .replace(/!\[[^\]]*\]\([^)]+\)/g, " ")
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+      .replace(/^#{1,6}\s*/gm, "")
+      .replace(/^>\s?/gm, "")
+      .replace(/^[-*+]\s+/gm, "")
+      .replace(/^\d+\.\s+/gm, "")
+      .replace(/`([^`]+)`/g, "$1")
+  );
+}
+
+function getMarkdownTitle(markdown: string, fallbackTitle: string) {
+  const heading = markdown.match(/^#\s+(.+)$/m)?.[1]?.trim();
+
+  return heading || fallbackTitle;
+}
+
+async function extractReadableUrlContent(url: string) {
   const response = await fetch(url, {
     cache: "no-store",
     headers: {
@@ -95,4 +122,28 @@ export async function extractReadableContent(url: string) {
     sourceTitle: title,
     text
   };
+}
+
+async function extractLocalFileContent(source: Extract<IngestSource, { kind: "file" }>) {
+  const absolutePath = path.join(process.cwd(), source.filePath);
+  const markdown = await readFile(absolutePath, "utf8");
+  const text = markdownToText(markdown);
+
+  if (!text) {
+    throw new Error(`No readable content extracted for ${source.filePath}.`);
+  }
+
+  return {
+    sourceUrl: source.url,
+    sourceTitle: source.title ?? getMarkdownTitle(markdown, source.label),
+    text
+  };
+}
+
+export async function extractReadableContent(source: IngestSource) {
+  if (source.kind === "file") {
+    return extractLocalFileContent(source);
+  }
+
+  return extractReadableUrlContent(source.url);
 }

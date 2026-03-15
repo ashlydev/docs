@@ -14,7 +14,7 @@ import {
   groundedAnswerResultSchema,
   groundedSupportSystemPrompt
 } from "@/lib/prompts";
-import { env, hasLlmConfig } from "@/lib/env";
+import { env, getLlmConfigIssues, hasLlmConfig } from "@/lib/env";
 import type { GroundedAnswerResult } from "@/lib/prompts";
 import {
   AiProviderConfigurationError,
@@ -148,7 +148,10 @@ export const openAIProvider: AiProviderAdapter = {
         chatModelAvailable: false,
         embeddingModel: env.OPENAI_EMBEDDING_MODEL,
         embeddingModelAvailable: false,
-        issues: ["Missing OpenAI configuration."]
+        issues:
+          env.LLM_PROVIDER === "openai"
+            ? getLlmConfigIssues()
+            : ["LLM_PROVIDER is not set to openai."]
       };
     }
 
